@@ -1,0 +1,22 @@
+{
+  "package_name":"mai2025",
+  "package_id": "de35d43f-b4fb-45ed-b2f1-63e5f3c15212",
+  "contents":[
+    {
+      "file_name": "rata.csv",
+      "resource_id": "1776d3d3-8a9d-4c14-b3bf-ee5b7776eb27"
+    },
+    {
+      "file_name": "medii.csv",
+      "resource_id": "bfddbacb-6f71-4da9-9ac9-f7f8b547185e"
+    },
+    {
+      "file_name": "varste.csv",
+      "resource_id": "17949c51-e3bb-4fe2-90c3-e9f0f70f5b62"
+    },
+    {
+      "file_name": "nivel-educatie.csv",
+      "resource_id": "507f8bf9-99e3-4eb1-bfc0-c4412137412d"
+    }
+  ]
+}
