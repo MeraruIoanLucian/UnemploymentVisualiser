@@ -10,6 +10,12 @@ header("Content-Type: application/json");
 $method = $_SERVER["REQUEST_METHOD"];
 $uri = $_SERVER["REQUEST_URI"];
 
+# URI Schema: /api/{PACKAGE_NAME}/{FILE_NAME}
+
+$uri_bits = explode("/", $uri);
+$package_name = $uri_bits[2];
+$filename = $uri_bits[3];
+
 if($method === "OPTIONS"){
     http_response_code(200);
     return;
@@ -38,34 +44,14 @@ try
     switch($method)
     {
         case "GET":
-            if($uri === "/api/basic")
-            {
-                $data = $unemployedDataService->getUnemployedDataBasic();
-                // Encode the returned array of objects into a JSON string and send it as the response.
+            $allowedFiles = ['rata.csv', 'medii.csv', 'varste.csv', 'nivel-educatie.csv'];
+            if (in_array($filename, $allowedFiles)) {
+                $data = $unemployedDataService->getUnemploymentData($package_name, $filename);
                 echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            }
-            elseif($uri === "/api/medium")
-            {
-                $data = $unemployedDataService->getUnemployedDataMedium();
-                // Encode the returned array of objects into a JSON string and send it as the response.
-                echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            }
-            elseif($uri === "/api/age-range")
-            {
-                $data = $unemployedDataService->getUnemployedDataAgeRange();
-                // Encode the returned array of objects into a JSON string and send it as the response.
-                echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            }
-            elseif($uri === "/api/education-level")
-            {
-                $data = $unemployedDataService->getUnemployedDataPerEducation();
-                // Encode the returned array of objects into a JSON string and send it as the response.
-                echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            }
-            else{
+            } else {
                 http_response_code(404);
+                echo json_encode(["error" => "File not found"]);
             }
-
             break;
         default:
             http_response_code(405);

@@ -1,22 +1,20 @@
 {
-  "package_name":"mai2025",
-  "package_id": "de35d43f-b4fb-45ed-b2f1-63e5f3c15212",
-  "contents":[
-    {
-      "file_name": "rata.csv",
-      "resource_id": "1776d3d3-8a9d-4c14-b3bf-ee5b7776eb27"
-    },
-    {
-      "file_name": "medii.csv",
-      "resource_id": "bfddbacb-6f71-4da9-9ac9-f7f8b547185e"
-    },
-    {
-      "file_name": "varste.csv",
-      "resource_id": "17949c51-e3bb-4fe2-90c3-e9f0f70f5b62"
-    },
-    {
-      "file_name": "nivel-educatie.csv",
-      "resource_id": "507f8bf9-99e3-4eb1-bfc0-c4412137412d"
+  "mai2025":{
+      "package_id": "de35d43f-b4fb-45ed-b2f1-63e5f3c15212",
+      "contents": {
+        "rata.csv": "1776d3d3-8a9d-4c14-b3bf-ee5b7776eb27",
+        "medii.csv": "bfddbacb-6f71-4da9-9ac9-f7f8b547185e",
+        "varste.csv": "17949c51-e3bb-4fe2-90c3-e9f0f70f5b62",
+        "nivel-educatie.csv": "507f8bf9-99e3-4eb1-bfc0-c4412137412d"
+      }
+  },
+  "aprilie2025": {
+    "package_id": "89e70b31-90c3-4372-bff5-b23e72529b0e",
+    "contents": {
+      "rata.csv": "b4388896-0bed-4410-a1a4-9034be260c28",
+      "medii.csv": "f9543c67-acc3-496f-a1d5-0c2a2766f066",
+      "varste.csv": "3c6d0d98-9a99-48a3-8084-a53056f63025",
+      "nivel-educatie.csv": "b55d62f4-962e-42e5-8268-f295faf4d741"
     }
-  ]
+  }
 }
