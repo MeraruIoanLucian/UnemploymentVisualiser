@@ -18,23 +18,4 @@ class FileParser
         throw new Exception("Cannot fetch the URL $url");
     }
 
-    public static function parseCsv($csvContents){
-        $rows = [];
-        $lines = explode("\n", $csvContents);
-        if(empty($lines)){
-            return $rows;
-        }
-
-        $headers = str_getcsv(array_shift($lines));
-        foreach ($lines as $line) {
-            if (trim($line) === '') continue;
-            $data = str_getcsv($line);
-            // Ensure data array matches headers length
-            if (count($data) < count($headers)) {
-                $data = array_pad($data, count($headers), '');
-            }
-            $rows[] = array_combine($headers, array_slice($data, 0, count($headers)));
-        }
-        return $rows;
-    }
 }

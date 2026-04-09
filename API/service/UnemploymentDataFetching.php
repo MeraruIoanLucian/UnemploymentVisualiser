@@ -5,6 +5,7 @@ require_once __DIR__ . "/../models/UnemploymentDataPerMedium.php";
 require_once __DIR__ . "/../models/UnemploymentDataPerAgeRange.php";
 require_once __DIR__ . "/../models/UnemploymentDataPerEducationLevel.php";
 require_once __DIR__ . "/FileParser.php";
+require_once __DIR__ . "/CacheSystem.php";
 
 use models\UnemploymentDataBasic;
 use models\UnemploymentDataPerMedium;
@@ -14,11 +15,13 @@ use models\UnemploymentDataPerEducationLevel;
 class UnemploymentDataFetching
 {
     private array $config;
+    private CacheSystem $cacheSystem;
     private const DATA_GOV_BASE_URL = 'https://data.gov.ro/dataset/';
 
     public function __construct(array $config)
     {
         $this->config = $config;
+        $this->cacheSystem = new CacheSystem();
     }
 
     private function getResourceInfo(string $packageName, string $fileName): ?array
@@ -54,12 +57,18 @@ class UnemploymentDataFetching
             throw new Exception("Resource '$fileName' for package '$packageName' not found in configuration.", 404);
         }
 
-        $packageId = $resourceInfo['package_id'];
-        $resourceId = $resourceInfo['resource_id'];
+        $cacheFileName = "{$packageName}_{$fileName}";
+        $csvContent = $this->cacheSystem->get($cacheFileName);
 
-        $url = self::DATA_GOV_BASE_URL . "{$packageId}/resource/{$resourceId}/download/{$fileName}";
+        if ($csvContent === null) {
+            $packageId = $resourceInfo['package_id'];
+            $resourceId = $resourceInfo['resource_id'];
 
-        $csvContent = FileParser::fetchUrl($url);
+            $url = self::DATA_GOV_BASE_URL . "{$packageId}/resource/{$resourceId}/download/{$fileName}";
+
+            $csvContent = FileParser::fetchUrl($url);
+            $this->cacheSystem->put($cacheFileName, $csvContent);
+        }
 
         if (empty($csvContent)) {
             throw new Exception("Fetched content for '$fileName' is empty.", 500);
