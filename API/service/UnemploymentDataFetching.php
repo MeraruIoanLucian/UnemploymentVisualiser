@@ -74,7 +74,7 @@ class UnemploymentDataFetching
             throw new Exception("Fetched content for '$fileName' is empty.", 500);
         }
 
-        $lines = str_getcsv($csvContent, "\n");
+        $lines = str_getcsv($csvContent, "\n", '"', '');
         array_shift($lines);
 
         $unemploymentData = [];
@@ -84,7 +84,7 @@ class UnemploymentDataFetching
                 continue;
             }
 
-            $row = str_getcsv($line, ';');
+            $row = str_getcsv($line, ';', '"', '');
 
             if (count($row) < 7 || empty(trim($row[0])) || trim($row[0]) === 'Total' || trim($row[0]) === 'Total TARA') {
                 continue;

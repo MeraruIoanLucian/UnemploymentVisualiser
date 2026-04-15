@@ -69,7 +69,7 @@ class CacheSystem
     public function put(string $name, string $content): void
     {
         $cacheFile = self::CACHE_DIR . '/' . $name;
-        file_put_contents($cacheFile, $content);
+        @file_put_contents($cacheFile, $content);
     }
 
     public function delete(string $name): bool

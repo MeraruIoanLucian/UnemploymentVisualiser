@@ -12,4 +12,5 @@ WORKDIR /var/www/html
 
 COPY . .
 
-RUN chown -R www-data:www-data /var/www/html
+RUN mkdir -p /var/www/html/cache && \
+    chown -R www-data:www-data /var/www/html

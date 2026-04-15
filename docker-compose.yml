@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./API
+    ports:
+      - "8080:80"
+    volumes:
+      - api-cache:/var/www/html/cache
+
+  frontend:
+    build: ./Frontend
+    ports:
+      - "3000:80"
+    environment:
+      - API_HOST=api
+      - API_PORT=80
+    depends_on:
+      - api
+
+volumes:
+  api-cache:

@@ -1,5 +1,9 @@
 <?php
 
+// Dezactivam afisarea erorilor in output (sa nu polueze JSON-ul)
+error_reporting(0);
+ini_set('display_errors', '0');
+
 require_once __DIR__ . "/service/UnemploymentDataFetching.php";
 require_once __DIR__ . "/service/CacheSystem.php";
 
@@ -31,6 +35,11 @@ if ($method === "OPTIONS") {
 
 const CACHE_DIR = __DIR__ . '/cache';
 const CACHE_LIFETIME = 7 * 24 * 60 * 60; // 7 days in seconds
+
+// Cream directorul cache daca nu exista
+if (!is_dir(CACHE_DIR)) {
+    @mkdir(CACHE_DIR, 0777, true);
+}
 
 // Auto-delete old cache files
 if (is_dir(CACHE_DIR)) {
