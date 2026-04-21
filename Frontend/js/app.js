@@ -678,15 +678,15 @@ function setupEventListeners() {
     }
 
     // Buton principal Export (exporta CSV ca default)
+    // Ionut uita-te la cum exportezi ca PDF, imi crapa PC-ul 
     if (elements.btnExportMain) {
         elements.btnExportMain.addEventListener('click', function () {
-            MonitorExport.toPDF();
+            MonitorExport.toCSV();
         });
     }
 }
 
 //Initializare
-
 
 function init() {
     cacheElements();

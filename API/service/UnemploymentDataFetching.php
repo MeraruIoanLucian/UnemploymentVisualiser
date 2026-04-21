@@ -67,6 +67,7 @@ class UnemploymentDataFetching
             $url = self::DATA_GOV_BASE_URL . "{$packageId}/resource/{$resourceId}/download/{$fileName}";
 
             $csvContent = FileParser::fetchUrl($url);
+
             $this->cacheSystem->put($cacheFileName, $csvContent);
         }
 
@@ -78,6 +79,7 @@ class UnemploymentDataFetching
         array_shift($lines);
 
         $unemploymentData = [];
+        $totalKeywords = ['Total', 'Total TARA', 'TOTAL', 'Total general'];
 
         foreach ($lines as $line) {
             if (trim($line) === '') {
@@ -86,15 +88,26 @@ class UnemploymentDataFetching
 
             $row = str_getcsv($line, ';', '"', '');
 
-            if (count($row) < 7 || empty(trim($row[0])) || trim($row[0]) === 'Total' || trim($row[0]) === 'Total TARA') {
+            // Skip header/total rows or rows without a county name
+            if (count($row) < 2 || empty(trim($row[0])) || in_array(trim($row[0]), $totalKeywords, true)) {
                 continue;
             }
 
             try {
+                $countyName = trim($row[0]);
+                // Data sanitization: Correct known data entry errors from the source CSV.
+                // The source file literally contains "CARA?-SEVERIN" instead of "CARAȘ-SEVERIN".
+                if ($countyName === 'CARA?-SEVERIN') {
+                    $countyName = 'CARAȘ-SEVERIN';
+                }
+
                 switch ($fileName) {
                     case 'rata.csv':
+                        if (count($row) < 9) {
+                            continue 2;
+                        }
                         $unemploymentData[] = new UnemploymentDataBasic(
-                            county: trim($row[0]),
+                            county: $countyName,
                             nrUnemployed: (int) str_replace('.', '', trim($row[1])),
                             nrFemaleUnemployed: (int) str_replace('.', '', trim($row[2])),
                             nrMaleUnemployed: (int) str_replace('.', '', trim($row[3])),
@@ -106,40 +119,49 @@ class UnemploymentDataFetching
                         );
                         break;
                     case 'medii.csv':
+                        if (count($row) < 10) {
+                            continue 2;
+                        }
                         $unemploymentData[] = new UnemploymentDataPerMedium(
-                            county: trim($row[0]),
+                            county: $countyName,
                             totalUnemployed: (int) str_replace('.', '', trim($row[1])),
                             totalFemaleUnemployed: (int) str_replace('.', '', trim($row[2])),
                             totalMaleUnemployed: (int) str_replace('.', '', trim($row[3])),
                             totalUnemployedUrban: (int) str_replace('.', '', trim($row[4])),
                             totalFemaleUnemployedUrban: (int) str_replace('.', '', trim($row[5])),
-                            totalMaleUnemployedUrban: (int) str_replace(',', '.', trim($row[6])),
-                            totalUnemployedRural: (int) str_replace(',', '.', trim($row[7])),
-                            totalFemaleUnemployedRural: (int) str_replace(',', '.', trim($row[8])),
-                            totalMaleUnemployedRural: (int) str_replace(',', '.', trim($row[8]))
+                            totalMaleUnemployedUrban: (int) str_replace('.', '', trim($row[6])),
+                            totalUnemployedRural: (int) str_replace('.', '', trim($row[7])),
+                            totalFemaleUnemployedRural: (int) str_replace('.', '', trim($row[8])),
+                            totalMaleUnemployedRural: (int) str_replace('.', '', trim($row[9]))
                         );
                         break;
                     case 'varste.csv':
+                        if (count($row) < 7) {
+                            continue 2;
+                        }
                         $unemploymentData[] = new UnemploymentDataPerAgeRange(
-                            county: trim($row[0]),
+                            county: $countyName,
                             under25: (int) str_replace('.', '', trim($row[1])),
                             from25to29: (int) str_replace('.', '', trim($row[2])),
                             from30to39: (int) str_replace('.', '', trim($row[3])),
                             from40to49: (int) str_replace('.', '', trim($row[4])),
                             from50to59: (int) str_replace('.', '', trim($row[5])),
-                            over50: (float) str_replace(',', '.', trim($row[6]))
+                            over50: (int) str_replace('.', '', trim($row[6]))
                         );
                         break;
                     case 'nivel-educatie.csv':
+                        if (count($row) < 8) {
+                            continue 2;
+                        }
                         $unemploymentData[] = new UnemploymentDataPerEducationLevel(
-                            county: trim($row[0]),
+                            county: $countyName,
                             noStudy: (int) str_replace('.', '', trim($row[1])),
                             primaryStudy: (int) str_replace('.', '', trim($row[2])),
                             middleStudy: (int) str_replace('.', '', trim($row[3])),
                             highStudy: (int) str_replace('.', '', trim($row[4])),
                             postHighStudy: (int) str_replace('.', '', trim($row[5])),
-                            professionalStudy: (int) str_replace(',', '.', trim($row[6])),
-                            universityStudy: (int) str_replace(',', '.', trim($row[7]))
+                            professionalStudy: (int) str_replace('.', '', trim($row[6])),
+                            universityStudy: (int) str_replace('.', '', trim($row[7]))
                         );
                         break;
                 }

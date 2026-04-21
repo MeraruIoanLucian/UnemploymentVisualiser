@@ -136,47 +136,58 @@ var MonitorExport = (function () {
             var imgHeight = (canvas.height * imgWidth) / canvas.width;
 
             var pdf = new jsPDF('p', 'mm', 'a4');
+            var pageNumber = 1;
 
-            // Titlu
-            pdf.setFontSize(16);
-            pdf.setTextColor(12, 51, 90);
-            pdf.text('Monitor Șomaj România - Raport', 10, 15);
-            pdf.setFontSize(9);
-            pdf.setTextColor(100);
-            pdf.text('Generat la: ' + new Date().toLocaleString('ro-RO'), 10, 22);
+            function addHeader() {
+                var title = pageNumber === 1 ? 'Monitor Șomaj România - Raport' : 'Monitor Șomaj România - Raport (pag. ' + pageNumber + ')';
+                pdf.setFontSize(16);
+                pdf.setTextColor(12, 51, 90);
+                pdf.text(title, 10, 15);
+                pdf.setFontSize(9);
+                pdf.setTextColor(100);
+                pdf.text('Generat la: ' + new Date().toLocaleString('ro-RO'), 10, 22);
+            }
+
+            addHeader();
 
             var yOffset = 28;
 
             // Daca imaginea incape pe o pagina
-            if (imgHeight + yOffset <= pageHeight) {
+            if (imgHeight + yOffset + 10 <= pageHeight) {
                 pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth, imgHeight);
             } else {
                 // Impartim pe mai multe pagini
                 var remainingHeight = imgHeight;
-                var position = 0;
+                var positionOnCanvas = 0; // Pozitia Y pe canvas-ul sursa, in pixeli
 
                 while (remainingHeight > 0) {
-                    var sliceHeight = Math.min(remainingHeight, pageHeight - yOffset - 10);
+                    var sliceHeightOnPdf = Math.min(remainingHeight, pageHeight - yOffset - 10);
+                    var sliceHeightOnCanvas = (sliceHeightOnPdf / imgHeight) * canvas.height;
 
                     // Cream un canvas partial
                     var sliceCanvas = document.createElement('canvas');
                     sliceCanvas.width = canvas.width;
-                    sliceCanvas.height = (sliceHeight / imgHeight) * canvas.height;
+                    sliceCanvas.height = sliceHeightOnCanvas;
                     var ctx = sliceCanvas.getContext('2d');
+
+                    // Copiem bucata din canvas-ul mare in cel partial
                     ctx.drawImage(canvas,
-                        0, position * (canvas.height / imgHeight) / (imgWidth / canvas.width),
-                        canvas.width, sliceCanvas.height,
-                        0, 0, sliceCanvas.width, sliceCanvas.height
+                        0, positionOnCanvas,
+                        canvas.width, sliceHeightOnCanvas,
+                        0, 0, canvas.width, sliceHeightOnCanvas
                     );
 
-                    pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth, imgHeight, undefined, 'FAST', 0);
+                    // Adaugam doar bucata, nu imaginea intreaga
+                    pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 10, yOffset, imgWidth, sliceHeightOnPdf);
 
-                    remainingHeight -= sliceHeight;
-                    position += sliceHeight;
+                    remainingHeight -= sliceHeightOnPdf;
+                    positionOnCanvas += sliceHeightOnCanvas;
 
                     if (remainingHeight > 0) {
+                        pageNumber++;
                         pdf.addPage();
-                        yOffset = 10;
+                        addHeader();
+                        yOffset = 28; // Resetam pozitia Y pentru pagina noua cu header
                     }
                 }
             }
