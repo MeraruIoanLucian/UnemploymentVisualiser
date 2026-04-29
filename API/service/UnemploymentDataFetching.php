@@ -75,7 +75,7 @@ class UnemploymentDataFetching
             throw new Exception("Fetched content for '$fileName' is empty.", 500);
         }
 
-        $lines = str_getcsv($csvContent, "\n", '"', '');
+        $lines = str_getcsv($csvContent, "\n");
         array_shift($lines);
 
         $unemploymentData = [];
@@ -86,7 +86,10 @@ class UnemploymentDataFetching
                 continue;
             }
 
-            $row = str_getcsv($line, ';', '"', '');
+            $row = str_getcsv($line, ';');
+            if (count($row) < 2) {
+                $row = str_getcsv($line, ',');
+            }
 
             // Skip header/total rows or rows without a county name
             if (count($row) < 2 || empty(trim($row[0])) || in_array(trim($row[0]), $totalKeywords, true)) {

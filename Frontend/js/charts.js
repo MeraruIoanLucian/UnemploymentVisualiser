@@ -52,6 +52,17 @@ var MonitorCharts = (function () {
         var labels = [];
         var datasets = [];
 
+        // Ensure data is sorted by county for consistent comparison
+        data.sort(function (a, b) { return a.county.localeCompare(b.county); });
+        if (compareData) {
+            compareData.sort(function (a, b) { return a.county.localeCompare(b.county); });
+        }
+
+        labels = data.map(function (d) { return d.county; });
+
+        var xScalesStacked = false; // Controls if groups of bars are stacked on X-axis
+        var yScalesStacked = false; // Controls if bars within a group are stacked on Y-axis
+
         switch (criterion) {
             case 'rata':
                 labels = data.map(function (d) { return d.county; });
@@ -65,16 +76,25 @@ var MonitorCharts = (function () {
                         return d.unemploymentRate > 5 ? COLORS.error : COLORS.primary;
                     }),
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 4,
+                    stack: compareData ? 'rata_comparison_stack' : undefined, // Common stack for overlap
+                    barPercentage: compareData ? 0.6 : 0.9, // Narrower if comparing
+                    categoryPercentage: 0.8
                 });
                 if (compareData) {
                     datasets.push({
                         label: 'Rata comparativă (%)',
-                        data: compareData.map(function (d) { return d.unemploymentRate; }),
-                        backgroundColor: COLORS.primaryContainer + '99',
+                        data: data.map(function (d) { // Map over 'data' to ensure order, then find compare value
+                            var compareCounty = compareData.find(cd => cd.county === d.county);
+                            return compareCounty ? compareCounty.unemploymentRate : null;
+                        }),
+                        backgroundColor: COLORS.primaryContainer + 'CC', // Slightly less transparent for visibility
                         borderColor: COLORS.primaryLight,
                         borderWidth: 1,
-                        borderRadius: 4
+                        borderRadius: 4,
+                        stack: 'rata_comparison_stack', // Common stack for overlap
+                        barPercentage: 0.8, // Wider if comparing
+                        categoryPercentage: 0.8
                     });
                 }
                 break;
@@ -87,9 +107,23 @@ var MonitorCharts = (function () {
                     datasets.push({
                         label: eduLabels[i],
                         data: data.map(function (d) { return d[key]; }),
-                        backgroundColor: COLORS.palette[i] + 'CC',
-                        borderRadius: 2
+                        backgroundColor: COLORS.palette[i % COLORS.palette.length] + 'CC',
+                        borderRadius: 2,
+                        //stack: compareData ? 'current_group' : 'main_stack' // Stack for current group or main stack
+                        stack: compareData ? "current_stack_educatie" : 'main_stack_educatie'
                     });
+                    if (compareData) {
+                        datasets.push({
+                            label: eduLabels[i] + ' (Comparativ)',
+                            data: data.map(function (d) {
+                                var compareCounty = compareData.find(cd => cd.county === d.county);
+                                return compareCounty ? compareCounty[key] : null;
+                            }),
+                            backgroundColor: COLORS.palette[i % COLORS.palette.length] + '99', // Lighter/transparent color for comparison
+                            borderRadius: 2,
+                            stack: 'compare_stack_educatie' // Stack for comparison group
+                        });
+                    }
                 });
                 break;
 
@@ -101,9 +135,22 @@ var MonitorCharts = (function () {
                     datasets.push({
                         label: ageLabels[i],
                         data: data.map(function (d) { return d[key]; }),
-                        backgroundColor: COLORS.palette[i] + 'CC',
-                        borderRadius: 2
+                        backgroundColor: COLORS.palette[i % COLORS.palette.length] + 'CC',
+                        borderRadius: 2,
+                        stack: compareData ? 'current_stack_varste' : 'main_stack_varste'
                     });
+                    if (compareData) {
+                        datasets.push({
+                            label: ageLabels[i] + ' (Comparativ)',
+                            data: data.map(function (d) {
+                                var compareCounty = compareData.find(function (cd) { return cd.county === d.county; });
+                                return compareCounty ? compareCounty[key] : null;
+                            }),
+                            backgroundColor: COLORS.palette[i % COLORS.palette.length] + '99',
+                            borderRadius: 2,
+                            stack: 'compare_stack_varste'
+                        });
+                    }
                 });
                 break;
 
@@ -112,19 +159,72 @@ var MonitorCharts = (function () {
                 datasets.push({
                     label: 'Urban',
                     data: data.map(function (d) { return d.totalUnemployedUrban; }),
-                    backgroundColor: COLORS.primary + '99',
-                    borderRadius: 4
+                    backgroundColor: COLORS.palette[0] + 'CC',
+                    borderRadius: 2,
+                    stack: compareData ? 'current_stack_medii' : 'main_stack_medii'
                 });
                 datasets.push({
                     label: 'Rural',
                     data: data.map(function (d) { return d.totalUnemployedRural; }),
-                    backgroundColor: COLORS.primaryLight + '99',
-                    borderRadius: 4
+                    backgroundColor: COLORS.palette[1] + 'CC',
+                    borderRadius: 2,
+                    stack: compareData ? 'current_stack_medii' : 'main_stack_medii'
                 });
+
+                if (compareData) {
+                    datasets.push({
+                        label: 'Urban (Comparativ)',
+                        data: data.map(function (d) {
+                            var compareCounty = compareData.find(function (cd) { return cd.county === d.county; });
+                            return compareCounty ? compareCounty.totalUnemployedUrban : null;
+                        }),
+                        backgroundColor: COLORS.palette[0] + '99',
+                        borderRadius: 2,
+                        stack: 'compare_stack_medii'
+                    });
+                    datasets.push({
+                        label: 'Rural (Comparativ)',
+                        data: data.map(function (d) {
+                            var compareCounty = compareData.find(function (cd) { return cd.county === d.county; });
+                            return compareCounty ? compareCounty.totalUnemployedRural : null;
+                        }),
+                        backgroundColor: COLORS.palette[1] + '99',
+                        borderRadius: 2,
+                        stack: 'compare_stack_medii'
+                    });
+                }
                 break;
         }
 
-        var isStacked = (criterion === 'educatie' || criterion === 'varste');
+        // Determine stacking behavior for scales
+        var isMultiCategory = (criterion === 'educatie' || criterion === 'varste' || criterion === 'medii');
+        if (compareData) {
+                if (criterion === 'rata') {
+                    xScalesStacked = false; // For rata, we want overlapping bars at the same X position, not stacked vertically
+                    yScalesStacked = false; // Not a stacked chart
+                } else {
+                    xScalesStacked = false; // Grouped bars on X-axis when comparing (current stack vs compare stack)
+                    yScalesStacked = isMultiCategory; // Y-axis stacked for categories within a group
+                }
+        } else {
+            // Original behavior without comparison (stack if multiple categories)
+            xScalesStacked = isMultiCategory;
+            yScalesStacked = isMultiCategory;
+        }
+
+        // Reorder datasets for 'rata' to ensure wider bar is behind
+        // This needs to be done after all datasets are potentially added
+        if (criterion === 'rata' && compareData && datasets.length === 2) {
+            // Assuming datasets[0] is current and datasets[1] is compare initially
+            // We want compare (wider) to be first, then current (narrower)
+            var currentRataDataset = datasets.find(d => d.label.includes('Rata șomajului'));
+            var compareRataDataset = datasets.find(d => d.label.includes('Rata comparativă'));
+
+            if (currentRataDataset && compareRataDataset) {
+                datasets = [compareRataDataset, currentRataDataset];
+            }
+        }
+
 
         return {
             type: 'bar',
@@ -152,7 +252,7 @@ var MonitorCharts = (function () {
                 },
                 scales: {
                     x: {
-                        stacked: isStacked,
+                        stacked: xScalesStacked,
                         ticks: {
                             font: { family: "'Inter', sans-serif", size: 10 },
                             maxRotation: 45,
@@ -160,8 +260,8 @@ var MonitorCharts = (function () {
                         },
                         grid: { display: false }
                     },
-                    y: {
-                        stacked: isStacked,
+                    y: { // Y-axis stacking applies to bars within a group
+                        stacked: yScalesStacked,
                         ticks: {
                             font: { family: "'Inter', sans-serif", size: 11 }
                         },
