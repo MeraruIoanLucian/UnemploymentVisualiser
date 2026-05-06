@@ -273,9 +273,11 @@ sort($counties);
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- jsPDF + html2canvas (pentru export PDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- Scripturi proprii -->
+    <script src="/js/fonts.js"></script>
     <script src="/js/charts.js"></script>
     <script src="/js/map.js"></script>
     <script src="/js/export.js"></script>

@@ -106,12 +106,18 @@ var MonitorExport = (function () {
 
     /**
      * Exporta dashboard-ul ca PDF
-     * Foloseste html2canvas pentru captura si jsPDF pentru generare
+     * Foloseste jsPDF + autoTable pentru un raport profesional
      */
     function toPDF() {
-        var mainContent = document.getElementById('main-content');
-        if (!mainContent) {
-            alert('Nu s-a găsit conținutul de exportat.');
+        // Accesam datele globale din app.js (state si CONFIG)
+        if (typeof state === 'undefined' || typeof CONFIG === 'undefined') {
+            alert('Datele aplicației nu sunt disponibile.');
+            return;
+        }
+
+        var data = state.data;
+        if (!data || data.length === 0) {
+            alert('Nu sunt date disponibile pentru export.');
             return;
         }
 
@@ -120,86 +126,236 @@ var MonitorExport = (function () {
         var originalText = btn ? btn.textContent : '';
         if (btn) btn.textContent = '...';
 
-        html2canvas(mainContent, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#f8f9ff'
-        }).then(function (canvas) {
-            var jsPDF = window.jspdf.jsPDF;
-            var imgData = canvas.toDataURL('image/png');
+        // Folosim un timeout scurt pentru a lasa UI-ul sa se actualizeze (feedback-ul cu '...')
+        setTimeout(function() {
+            try {
+                var jsPDF = window.jspdf.jsPDF;
+                var pdf = new jsPDF('p', 'mm', 'a4');
 
-            // Calculam dimensiunile pentru A4
-            var pageWidth = 210; // mm
-            var pageHeight = 297; // mm
-            var imgWidth = pageWidth - 20; // 10mm margini
-            var imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            var pdf = new jsPDF('p', 'mm', 'a4');
-            var pageNumber = 1;
-
-            function addHeader() {
-                var title = pageNumber === 1 ? 'Monitor Șomaj România - Raport' : 'Monitor Șomaj România - Raport (pag. ' + pageNumber + ')';
-                pdf.setFontSize(16);
-                pdf.setTextColor(12, 51, 90);
-                pdf.text(title, 10, 15);
-                pdf.setFontSize(9);
-                pdf.setTextColor(100);
-                pdf.text('Generat la: ' + new Date().toLocaleString('ro-RO'), 10, 22);
-            }
-
-            addHeader();
-
-            var yOffset = 28;
-
-            // Daca imaginea incape pe o pagina
-            if (imgHeight + yOffset + 10 <= pageHeight) {
-                pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth, imgHeight);
-            } else {
-                // Impartim pe mai multe pagini
-                var remainingHeight = imgHeight;
-                var positionOnCanvas = 0; // Pozitia Y pe canvas-ul sursa, in pixeli
-
-                while (remainingHeight > 0) {
-                    var sliceHeightOnPdf = Math.min(remainingHeight, pageHeight - yOffset - 10);
-                    var sliceHeightOnCanvas = (sliceHeightOnPdf / imgHeight) * canvas.height;
-
-                    // Cream un canvas partial
-                    var sliceCanvas = document.createElement('canvas');
-                    sliceCanvas.width = canvas.width;
-                    sliceCanvas.height = sliceHeightOnCanvas;
-                    var ctx = sliceCanvas.getContext('2d');
-
-                    // Copiem bucata din canvas-ul mare in cel partial
-                    ctx.drawImage(canvas,
-                        0, positionOnCanvas,
-                        canvas.width, sliceHeightOnCanvas,
-                        0, 0, canvas.width, sliceHeightOnCanvas
-                    );
-
-                    // Adaugam doar bucata, nu imaginea intreaga
-                    pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 10, yOffset, imgWidth, sliceHeightOnPdf);
-
-                    remainingHeight -= sliceHeightOnPdf;
-                    positionOnCanvas += sliceHeightOnCanvas;
-
-                    if (remainingHeight > 0) {
-                        pageNumber++;
-                        pdf.addPage();
-                        addHeader();
-                        yOffset = 28; // Resetam pozitia Y pentru pagina noua cu header
+                // Incarcam fonturile pentru suport diacritice (Romanian)
+                var hasRoboto = false;
+                try {
+                    if (typeof FONT_ROBOTO_REGULAR !== 'undefined' && FONT_ROBOTO_REGULAR.length > 1000) {
+                        pdf.addFileToVFS('Roboto-Regular.ttf', FONT_ROBOTO_REGULAR);
+                        pdf.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+                        hasRoboto = true;
                     }
+                    if (typeof FONT_ROBOTO_BOLD !== 'undefined' && FONT_ROBOTO_BOLD.length > 1000) {
+                        pdf.addFileToVFS('Roboto-Bold.ttf', FONT_ROBOTO_BOLD);
+                        pdf.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+                    }
+                } catch (e) {
+                    console.error('Eroare la incarcarea fonturilor:', e);
                 }
+                
+                var mainFont = hasRoboto ? 'Roboto' : 'helvetica';
+                pdf.setFont(mainFont, 'normal');
+
+                var pageWidth = pdf.internal.pageSize.width;
+                var pageHeight = pdf.internal.pageSize.height;
+
+                // 1. HEADER
+                pdf.setFillColor(12, 51, 90);
+                pdf.rect(0, 0, pageWidth, 40, 'F');
+                
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(22);
+                pdf.setFont(mainFont, 'bold');
+                pdf.text('Monitor Șomaj România', 15, 20);
+                
+                pdf.setFontSize(10);
+                pdf.setFont(mainFont, 'normal');
+                pdf.text('Raport Generat la: ' + new Date().toLocaleString('ro-RO'), 15, 30);
+                
+                // Info filtre
+                var periodSelect = document.getElementById('period-select');
+                var periodLabel = periodSelect ? periodSelect.options[periodSelect.selectedIndex].text : state.currentMonth;
+                var countySelect = document.getElementById('county-select');
+                var countyLabel = countySelect ? countySelect.options[countySelect.selectedIndex].text : 'Toate Județele';
+                var criterionLabel = CONFIG.CRITERION_TITLE[state.currentCriterion];
+                
+                pdf.setFontSize(11);
+                pdf.text('Perioada: ' + periodLabel + '  |  Județ: ' + countyLabel, 15, 36);
+
+                var y = 50;
+
+                // 2. GRAFICE (Main Chart)
+                var barChart = MonitorCharts.getBarChart();
+                if (barChart && barChart.canvas) {
+                    pdf.setTextColor(12, 51, 90);
+                    pdf.setFontSize(14);
+                    pdf.setFont(mainFont, 'bold');
+                    pdf.text(criterionLabel, 15, y);
+                    y += 5;
+
+                    var barCanvas = barChart.canvas;
+                    // Folosim JPEG si calitate mai mica pentru a evita crash-ul la rezolutii mari
+                    var barImgData = barCanvas.toDataURL('image/jpeg', 0.8);
+                    var barWidth = pageWidth - 30;
+                    var barHeight = (barCanvas.height * barWidth) / barCanvas.width;
+                    
+                    if (barHeight > 85) barHeight = 85;
+
+                    pdf.addImage(barImgData, 'JPEG', 15, y, barWidth, barHeight);
+                    y += barHeight + 15;
+                }
+
+                // 3. GRAFIC DONUT (Daca exista si incape)
+                var donutChart = MonitorCharts.getDonutChart();
+                if (donutChart && donutChart.canvas) {
+                    pdf.setFontSize(14);
+                    pdf.setFont(mainFont, 'bold');
+                    pdf.text(CONFIG.DONUT_TITLE[state.currentCriterion], 15, y);
+                    y += 5;
+
+                    var donutCanvas = donutChart.canvas;
+                    var donutImgData = donutCanvas.toDataURL('image/jpeg', 0.8);
+                    var donutSize = 55;
+                    
+                    pdf.addImage(donutImgData, 'JPEG', 15, y, donutSize, donutSize);
+                    
+                    // Adaugam legenda langa donut
+                    pdf.setFontSize(9);
+                    pdf.setFont(mainFont, 'normal');
+                    pdf.setTextColor(60, 60, 60);
+                    
+                    var breakdown = computeBreakdown(state.data, state.currentCriterion, state.currentCounty);
+                    var totalCount = breakdown.values.reduce(function(a, b) { return a + b; }, 0);
+                    
+                    breakdown.labels.forEach(function(label, i) {
+                        if (i < 8) { // Limitam numarul de randuri in legenda sa nu iasa din pagina
+                            var pct = totalCount > 0 ? Math.round((breakdown.values[i] / totalCount) * 100) : 0;
+                            pdf.text('• ' + label + ': ' + pct + '%', 15 + donutSize + 10, y + 10 + (i * 6));
+                        }
+                    });
+
+                    y += donutSize + 15;
+                }
+
+                // 4. TABEL COMPLET
+                pdf.addPage();
+                pdf.setTextColor(12, 51, 90);
+                pdf.setFontSize(16);
+                pdf.setFont(mainFont, 'bold');
+                pdf.text('Statistici Detaliate pe Județe', 15, 20);
+
+                var columns = CONFIG.TABLE_COLUMNS[state.currentCriterion];
+                var tableHeaders = [columns.map(function(col) { return col.label; })];
+                var tableData = state.data.map(function(row) {
+                    return columns.map(function(col) {
+                        var val = row[col.key];
+                        if (col.format === 'number') return (val || 0).toLocaleString('ro-RO');
+                        if (col.format === 'rate') return val + '%';
+                        return val;
+                    });
+                });
+
+                pdf.autoTable({
+                    startY: 25,
+                    head: tableHeaders,
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [12, 51, 90], textColor: 255, fontStyle: 'bold', font: mainFont },
+                    styles: { fontSize: 8, cellPadding: 2, font: mainFont },
+                    margin: { left: 15, right: 15 },
+                    didDrawPage: function (data) {
+                        // Footer pagina
+                        pdf.setFontSize(8);
+                        pdf.setFont(mainFont, 'normal');
+                        pdf.setTextColor(150);
+                        pdf.text('Pagina ' + pdf.internal.getNumberOfPages(), 15, pageHeight - 10);
+                    }
+                });
+
+                // 5. PREVIEW & PRINT
+                // Auto-print pentru CUPS-PDF
+                pdf.autoPrint();
+                
+                // Generam Blob-ul o singura data
+                var pdfOutput = pdf.output('blob');
+                var blobUrl = URL.createObjectURL(pdfOutput);
+                
+                // Deschidem in fereastra noua
+                var newWindow = window.open(blobUrl, '_blank');
+                if (!newWindow) {
+                    // Daca popup blocker e activ, facem fallback la download
+                    pdf.save('somaj_raport_complet.pdf');
+                    alert('Vă rugăm să permiteți pop-up-urile pentru a vedea previzualizarea PDF.');
+                }
+
+                if (btn) btn.textContent = originalText;
+            } catch (err) {
+                console.error('Eroare la generarea PDF:', err);
+                alert('A apărut o eroare la generarea PDF-ului. Datele ar putea fi prea mari pentru browser.');
+                if (btn) btn.textContent = originalText;
             }
+        }, 100);
+    }
 
-            pdf.save('somaj_raport.pdf');
+    /**
+     * Functie helper pentru a recalcula distributia (copiata din app.js sau facuta accesibila)
+     * In mod normal ar trebui sa fie intr-un modul de date comun.
+     */
+    function computeBreakdown(data, criterion, county) {
+        var filtered = data;
+        if (county && county !== 'all') {
+            filtered = data.filter(function (d) {
+                return d.county.toUpperCase() === county.toUpperCase();
+            });
+        }
 
-            if (btn) btn.textContent = originalText;
-        }).catch(function (err) {
-            console.error('Eroare la generarea PDF:', err);
-            alert('A apărut o eroare la generarea PDF-ului.');
-            if (btn) btn.textContent = originalText;
-        });
+        var labels, values;
+        switch (criterion) {
+            case 'rata':
+                var totalFemale = 0, totalMale = 0;
+                filtered.forEach(function (d) {
+                    totalFemale += d.nrFemaleUnemployed || 0;
+                    totalMale += d.nrMaleUnemployed || 0;
+                });
+                labels = ['Femei', 'Bărbați'];
+                values = [totalFemale, totalMale];
+                break;
+            case 'educatie':
+                var sums = { noStudy: 0, primaryStudy: 0, middleStudy: 0, highStudy: 0, postHighStudy: 0, professionalStudy: 0, universityStudy: 0 };
+                filtered.forEach(function (d) {
+                    sums.noStudy += d.noStudy || 0;
+                    sums.primaryStudy += d.primaryStudy || 0;
+                    sums.middleStudy += d.middleStudy || 0;
+                    sums.highStudy += d.highStudy || 0;
+                    sums.postHighStudy += d.postHighStudy || 0;
+                    sums.professionalStudy += d.professionalStudy || 0;
+                    sums.universityStudy += d.universityStudy || 0;
+                });
+                labels = ['Fără studii', 'Primar', 'Gimnazial', 'Liceal', 'Postliceal', 'Profesional', 'Universitar'];
+                values = [sums.noStudy, sums.primaryStudy, sums.middleStudy, sums.highStudy, sums.postHighStudy, sums.professionalStudy, sums.universityStudy];
+                break;
+            case 'varste':
+                var ageSums = { under25: 0, from25to29: 0, from30to39: 0, from40to49: 0, from50to59: 0, over50: 0 };
+                filtered.forEach(function (d) {
+                    ageSums.under25 += d.under25 || 0;
+                    ageSums.from25to29 += d.from25to29 || 0;
+                    ageSums.from30to39 += d.from30to39 || 0;
+                    ageSums.from40to49 += d.from40to49 || 0;
+                    ageSums.from50to59 += d.from50to59 || 0;
+                    ageSums.over50 += d.over50 || 0;
+                });
+                labels = ['Sub 25', '25-29', '30-39', '40-49', '50-59', 'Peste 50'];
+                values = [ageSums.under25, ageSums.from25to29, ageSums.from30to39, ageSums.from40to49, ageSums.from50to59, ageSums.over50];
+                break;
+            case 'medii':
+                var urbanTotal = 0, ruralTotal = 0;
+                filtered.forEach(function (d) {
+                    urbanTotal += d.totalUnemployedUrban || 0;
+                    ruralTotal += d.totalUnemployedRural || 0;
+                });
+                labels = ['Urban', 'Rural'];
+                values = [urbanTotal, ruralTotal];
+                break;
+            default:
+                labels = [];
+                values = [];
+        }
+        return { labels: labels, values: values };
     }
 
     /**

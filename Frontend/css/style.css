@@ -890,3 +890,61 @@ a:hover {
     font-weight: 600;
     font-size: 0.8125rem;
 }
+
+/* ========== PRINT STYLES ========== */
+@media print {
+    .header-actions, 
+    .filter-section, 
+    .filter-actions,
+    .btn-export-group,
+    .search-input-wrapper,
+    .pagination,
+    .btn-view,
+    .footer,
+    #btn-export-main {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        padding: 0 !important;
+    }
+
+    .main {
+        padding: 1rem !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #eee !important;
+        break-inside: avoid;
+        margin-bottom: 1rem !important;
+    }
+
+    .dashboard-title {
+        margin-bottom: 1rem !important;
+    }
+
+    .grid-main, .grid-secondary {
+        display: block !important;
+    }
+
+    .stats-column {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 1rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .card-stat-highlight, .card-indicators {
+        flex: 1 !important;
+    }
+
+    .data-table {
+        font-size: 9pt !important;
+    }
+
+    .data-table th, .data-table td {
+        padding: 0.5rem !important;
+    }
+}
