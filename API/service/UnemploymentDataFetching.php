@@ -99,9 +99,9 @@ class UnemploymentDataFetching
             try {
                 $countyName = trim($row[0]);
                 // Data sanitization: Correct known data entry errors from the source CSV.
-                // The source file literally contains "CARA?-SEVERIN" instead of "CARAȘ-SEVERIN".
+                // The source file literally contains "CARA?-SEVERIN" instead of "CARAS-SEVERIN".
                 if ($countyName === 'CARA?-SEVERIN') {
-                    $countyName = 'CARAȘ-SEVERIN';
+                    $countyName = 'CARAS-SEVERIN';
                 }
 
                 switch ($fileName) {
