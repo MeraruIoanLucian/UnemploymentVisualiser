@@ -93,6 +93,8 @@ function cacheElements() {
     elements.btnCSV = document.getElementById('btn-csv');
     elements.btnSVG = document.getElementById('btn-svg');
     elements.btnPDF = document.getElementById('btn-pdf');
+    elements.btnSQL = document.getElementById('btn-sql');
+    elements.btnJSON = document.getElementById('btn-json');
     elements.btnExportMain = document.getElementById('btn-export-main');
     elements.mainChartTitle = document.getElementById('main-chart-title');
     elements.donutChartTitle = document.getElementById('donut-chart-title');
@@ -674,6 +676,22 @@ function setupEventListeners() {
     if (elements.btnPDF) {
         elements.btnPDF.addEventListener('click', function () {
             MonitorExport.toPDF();
+        });
+    }
+
+    // Export SQL
+    if (elements.btnSQL) {
+        elements.btnSQL.addEventListener('click', function () {
+            var fileName = 'somaj_' + state.currentCriterion + '_' + state.currentMonth + '.sql';
+            MonitorExport.toSQL(state.data, state.currentCriterion, fileName);
+        });
+    }
+
+    // Export JSON
+    if (elements.btnJSON) {
+        elements.btnJSON.addEventListener('click', function () {
+            var fileName = 'somaj_' + state.currentCriterion + '_' + state.currentMonth + '.json';
+            MonitorExport.toJSON(state.data, state.currentCriterion, fileName);
         });
     }
 

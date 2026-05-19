@@ -358,12 +358,107 @@ var MonitorExport = (function () {
         return { labels: labels, values: values };
     }
 
-    /**
-     * Descarca un fisier generat
-     * @param {string} content - continutul fisierului
-     * @param {string} fileName - numele fisierului
-     * @param {string} mimeType - tipul MIME
-     */
+    // export SQL - creare tabel + insert linie cu linie
+    function toSQL(data, criterion, fileName) {
+        if (!data || data.length === 0) {
+            alert('Nu sunt date disponibile pentru export.');
+            return;
+        }
+
+        var tableName = 'somaj_' + criterion;
+        var columns = [];
+        var colTypes = [];
+
+        switch (criterion) {
+            case 'rata':
+                columns = ['county', 'nr_unemployed', 'nr_female_unemployed', 'nr_male_unemployed',
+                            'nr_compensated', 'nr_non_compensated',
+                            'unemployment_rate', 'female_rate', 'male_rate'];
+                colTypes = ['VARCHAR(100)', 'INT', 'INT', 'INT', 'INT', 'INT', 'DECIMAL(5,2)', 'DECIMAL(5,2)', 'DECIMAL(5,2)'];
+                break;
+            case 'educatie':
+                columns = ['county', 'no_study', 'primary_study', 'middle_study', 'high_study',
+                            'post_high_study', 'professional_study', 'university_study'];
+                colTypes = ['VARCHAR(100)', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT'];
+                break;
+            case 'varste':
+                columns = ['county', 'under_25', 'from_25_to_29', 'from_30_to_39',
+                            'from_40_to_49', 'from_50_to_59', 'over_50'];
+                colTypes = ['VARCHAR(100)', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT'];
+                break;
+            case 'medii':
+                columns = ['county', 'total_unemployed', 'total_female', 'total_male',
+                            'urban_total', 'urban_female', 'urban_male',
+                            'rural_total', 'rural_female', 'rural_male'];
+                colTypes = ['VARCHAR(100)', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT', 'INT'];
+                break;
+        }
+
+        // CREATE TABLE
+        var sql = '-- Export SQL generat de Monitor Somaj\n';
+        sql += '-- Data: ' + new Date().toLocaleString('ro-RO') + '\n\n';
+        sql += 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (\n';
+        sql += '    id INT AUTO_INCREMENT PRIMARY KEY,\n';
+        for (var i = 0; i < columns.length; i++) {
+            sql += '    ' + columns[i] + ' ' + colTypes[i];
+            sql += ',\n';
+        }
+        // scoatem ultima virgula si adaugam inchiderea
+        sql = sql.slice(0, -2) + '\n);\n\n';
+
+        // INSERT INTO linie cu linie
+        data.forEach(function (row) {
+            var vals = [];
+            switch (criterion) {
+                case 'rata':
+                    vals = [
+                        "'" + (row.county || '').replace(/'/g, "''") + "'",
+                        row.nrUnemployed || 0, row.nrFemaleUnemployed || 0, row.nrMaleUnemployed || 0,
+                        row.nrCompensatedUnemployed || 0, row.nrNonCompensatedUnemployed || 0,
+                        row.unemploymentRate || 0, row.femaleUnemploymentRate || 0, row.maleUnemploymentRate || 0
+                    ];
+                    break;
+                case 'educatie':
+                    vals = [
+                        "'" + (row.county || '').replace(/'/g, "''") + "'",
+                        row.noStudy || 0, row.primaryStudy || 0, row.middleStudy || 0,
+                        row.highStudy || 0, row.postHighStudy || 0, row.professionalStudy || 0, row.universityStudy || 0
+                    ];
+                    break;
+                case 'varste':
+                    vals = [
+                        "'" + (row.county || '').replace(/'/g, "''") + "'",
+                        row.under25 || 0, row.from25to29 || 0, row.from30to39 || 0,
+                        row.from40to49 || 0, row.from50to59 || 0, row.over50 || 0
+                    ];
+                    break;
+                case 'medii':
+                    vals = [
+                        "'" + (row.county || '').replace(/'/g, "''") + "'",
+                        row.totalUnemployed || 0, row.totalFemaleUnemployed || 0, row.totalMaleUnemployed || 0,
+                        row.totalUnemployedUrban || 0, row.totalFemaleUnemployedUrban || 0, row.totalMaleUnemployedUrban || 0,
+                        row.totalUnemployedRural || 0, row.totalFemaleUnemployedRural || 0, row.totalMaleUnemployedRural || 0
+                    ];
+                    break;
+            }
+            sql += 'INSERT INTO ' + tableName + ' (' + columns.join(', ') + ') VALUES (' + vals.join(', ') + ');\n';
+        });
+
+        downloadFile(sql, fileName || 'somaj_export.sql', 'text/sql;charset=utf-8');
+    }
+
+    // export JSON
+    function toJSON(data, criterion, fileName) {
+        if (!data || data.length === 0) {
+            alert('Nu sunt date disponibile pentru export.');
+            return;
+        }
+
+        var jsonContent = JSON.stringify(data, null, 2);
+        downloadFile(jsonContent, fileName || 'somaj_export.json', 'application/json;charset=utf-8');
+    }
+
+    // descarca un fisier generat
     function downloadFile(content, fileName, mimeType) {
         var blob = new Blob([content], { type: mimeType });
         var url = URL.createObjectURL(blob);
@@ -380,6 +475,8 @@ var MonitorExport = (function () {
     return {
         toCSV: toCSV,
         toSVG: toSVG,
-        toPDF: toPDF
+        toPDF: toPDF,
+        toSQL: toSQL,
+        toJSON: toJSON
     };
 })();

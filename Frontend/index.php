@@ -133,6 +133,8 @@ sort($counties);
                     <button class="btn-export" id="btn-csv" title="Exportă CSV">CSV</button>
                     <button class="btn-export" id="btn-svg" title="Exportă SVG">SVG</button>
                     <button class="btn-export" id="btn-pdf" title="Exportă PDF">PDF</button>
+                    <button class="btn-export" id="btn-sql" title="Exportă SQL">SQL</button>
+                    <button class="btn-export" id="btn-json" title="Exportă JSON">JSON</button>
                 </div>
             </div>
         </section>
