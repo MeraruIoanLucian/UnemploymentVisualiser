@@ -695,11 +695,11 @@ function setupEventListeners() {
         });
     }
 
-    // Buton principal Export (exporta CSV ca default)
-    // Ionut uita-te la cum exportezi ca PDF, imi crapa PC-ul 
+    // Buton principal Export (exporta PDF ca default)
+    // lasa Ionut, Am reparato io
     if (elements.btnExportMain) {
         elements.btnExportMain.addEventListener('click', function () {
-            MonitorExport.toCSV();
+            MonitorExport.toPDF();
         });
     }
 }
