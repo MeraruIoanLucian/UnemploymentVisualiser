@@ -398,13 +398,12 @@ var MonitorExport = (function () {
         var sql = '-- Export SQL generat de Monitor Somaj\n';
         sql += '-- Data: ' + new Date().toLocaleString('ro-RO') + '\n\n';
         sql += 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (\n';
-        sql += '    id INT AUTO_INCREMENT PRIMARY KEY,\n';
         for (var i = 0; i < columns.length; i++) {
             sql += '    ' + columns[i] + ' ' + colTypes[i];
-            sql += ',\n';
+            if (i < columns.length - 1) sql += ',';
+            sql += '\n';
         }
-        // scoatem ultima virgula si adaugam inchiderea
-        sql = sql.slice(0, -2) + '\n);\n\n';
+        sql += ');\n\n';
 
         // INSERT INTO linie cu linie
         data.forEach(function (row) {
