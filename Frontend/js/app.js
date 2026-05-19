@@ -675,7 +675,14 @@ function setupEventListeners() {
     // Export PDF
     if (elements.btnPDF) {
         elements.btnPDF.addEventListener('click', function () {
-            MonitorExport.toPDF();
+            MonitorExport.toPDF(
+                state.data, 
+                state.currentCriterion, 
+                state.currentMonth, 
+                this, 
+                state.isComparing ? state.compareData : null, 
+                state.compareMonth
+            );
         });
     }
 
@@ -696,10 +703,16 @@ function setupEventListeners() {
     }
 
     // Buton principal Export (exporta PDF ca default)
-    // lasa Ionut, Am reparato io
     if (elements.btnExportMain) {
         elements.btnExportMain.addEventListener('click', function () {
-            MonitorExport.toPDF();
+            MonitorExport.toPDF(
+                state.data, 
+                state.currentCriterion, 
+                state.currentMonth, 
+                this, 
+                state.isComparing ? state.compareData : null, 
+                state.compareMonth
+            );
         });
     }
 }

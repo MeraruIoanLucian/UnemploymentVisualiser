@@ -106,27 +106,25 @@ var MonitorExport = (function () {
 
     /**
      * Exporta dashboard-ul ca PDF
-     * Foloseste jsPDF + autoTable pentru un raport profesional
+     * @param {Array} data - datele de exportat
+     * @param {string} criterion - criteriul curent
+     * @param {string} month - luna curenta
+     * @param {HTMLElement} triggerBtn - butonul care a declansat exportul (optional)
+     * @param {Array} compareData - datele comparative (optional)
+     * @param {string} compareMonth - luna comparativa (optional)
      */
-    function toPDF() {
-        // Accesam datele globale din app.js (state si CONFIG)
-        if (typeof state === 'undefined' || typeof CONFIG === 'undefined') {
-            alert('Datele aplicației nu sunt disponibile.');
-            return;
-        }
-
-        var data = state.data;
+    function toPDF(data, criterion, month, triggerBtn, compareData, compareMonth) {
         if (!data || data.length === 0) {
             alert('Nu sunt date disponibile pentru export.');
             return;
         }
 
-        // Feedback vizual
-        var btn = document.getElementById('btn-pdf');
+        // Feedback vizual pe butonul care a declansat actiunea
+        var btn = triggerBtn || document.getElementById('btn-pdf');
         var originalText = btn ? btn.textContent : '';
         if (btn) btn.textContent = '...';
 
-        // Folosim un timeout scurt pentru a lasa UI-ul sa se actualizeze (feedback-ul cu '...')
+        // Folosim un timeout scurt pentru a lasa UI-ul sa se actualizeze
         setTimeout(function() {
             try {
                 var jsPDF = window.jspdf.jsPDF;
@@ -154,6 +152,23 @@ var MonitorExport = (function () {
                 var pageWidth = pdf.internal.pageSize.width;
                 var pageHeight = pdf.internal.pageSize.height;
 
+                // Helper pentru label-uri luni
+                function getMonthLabel(m) {
+                    var select = document.getElementById('period-select');
+                    if (select) {
+                        for (var i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === m) return select.options[i].text;
+                        }
+                    }
+                    return m;
+                }
+
+                var monthLabel = getMonthLabel(month);
+                var compareMonthLabel = compareData ? getMonthLabel(compareMonth) : null;
+                var countySelect = document.getElementById('county-select');
+                var countyLabel = countySelect && countySelect.selectedIndex !== -1 ? countySelect.options[countySelect.selectedIndex].text : 'Toate Județele';
+                var criterionLabel = CONFIG.CRITERION_TITLE[criterion] || 'Statistici Șomaj';
+
                 // 1. HEADER
                 pdf.setFillColor(12, 51, 90);
                 pdf.rect(0, 0, pageWidth, 40, 'F');
@@ -167,81 +182,118 @@ var MonitorExport = (function () {
                 pdf.setFont(mainFont, 'normal');
                 pdf.text('Raport Generat la: ' + new Date().toLocaleString('ro-RO'), 15, 30);
                 
-                // Info filtre
-                var periodSelect = document.getElementById('period-select');
-                var periodLabel = periodSelect ? periodSelect.options[periodSelect.selectedIndex].text : state.currentMonth;
-                var countySelect = document.getElementById('county-select');
-                var countyLabel = countySelect ? countySelect.options[countySelect.selectedIndex].text : 'Toate Județele';
-                var criterionLabel = CONFIG.CRITERION_TITLE[state.currentCriterion];
-                
                 pdf.setFontSize(11);
-                pdf.text('Perioada: ' + periodLabel + '  |  Județ: ' + countyLabel, 15, 36);
+                var headerText = 'Perioada: ' + monthLabel;
+                if (compareData) headerText += ' vs ' + compareMonthLabel;
+                headerText += '  |  Județ: ' + countyLabel;
+                pdf.text(headerText, 15, 36);
 
                 var y = 50;
 
-                // 2. GRAFICE (Main Chart)
+                // 2. GRAFIC PRINCIPAL (Bar Chart - include comparatia daca e activa)
                 var barChart = MonitorCharts.getBarChart();
                 if (barChart && barChart.canvas) {
                     pdf.setTextColor(12, 51, 90);
                     pdf.setFontSize(14);
                     pdf.setFont(mainFont, 'bold');
-                    pdf.text(criterionLabel, 15, y);
+                    pdf.text(criterionLabel + (compareData ? ' (Comparativ)' : ''), 15, y);
                     y += 5;
 
                     var barCanvas = barChart.canvas;
-                    // Folosim JPEG si calitate mai mica pentru a evita crash-ul la rezolutii mari
                     var barImgData = barCanvas.toDataURL('image/jpeg', 0.8);
                     var barWidth = pageWidth - 30;
                     var barHeight = (barCanvas.height * barWidth) / barCanvas.width;
-                    
                     if (barHeight > 85) barHeight = 85;
 
                     pdf.addImage(barImgData, 'JPEG', 15, y, barWidth, barHeight);
                     y += barHeight + 15;
                 }
 
-                // 3. GRAFIC DONUT (Daca exista si incape)
-                var donutChart = MonitorCharts.getDonutChart();
-                if (donutChart && donutChart.canvas) {
+                // 3. GRAFICE RING / DONUT
+                if (compareData) {
                     pdf.setFontSize(14);
                     pdf.setFont(mainFont, 'bold');
-                    pdf.text(CONFIG.DONUT_TITLE[state.currentCriterion], 15, y);
-                    y += 5;
+                    pdf.text('Distribuție Comparație', 15, y);
+                    y += 7;
 
-                    var donutCanvas = donutChart.canvas;
-                    var donutImgData = donutCanvas.toDataURL('image/jpeg', 0.8);
-                    var donutSize = 55;
+                    var currentCounty = countySelect ? countySelect.value : 'all';
                     
-                    pdf.addImage(donutImgData, 'JPEG', 15, y, donutSize, donutSize);
+                    // Donut 1 (Luna curenta)
+                    var donut1 = generateDonutImage(data, criterion, currentCounty);
+                    pdf.addImage(donut1.imgData, 'JPEG', 15, y, 50, 50);
                     
-                    // Adaugam legenda langa donut
-                    pdf.setFontSize(9);
+                    // Donut 2 (Luna comparativa)
+                    var donut2 = generateDonutImage(compareData, criterion, currentCounty);
+                    pdf.addImage(donut2.imgData, 'JPEG', pageWidth - 15 - 50, y, 50, 50);
+
+                    // Legendă partajată în mijloc
+                    pdf.setFontSize(8);
                     pdf.setFont(mainFont, 'normal');
-                    pdf.setTextColor(60, 60, 60);
+                    var labels = donut1.breakdown.labels;
+                    var colors = MonitorCharts.COLORS.palette;
                     
-                    var breakdown = computeBreakdown(state.data, state.currentCriterion, state.currentCounty);
-                    var totalCount = breakdown.values.reduce(function(a, b) { return a + b; }, 0);
-                    
-                    breakdown.labels.forEach(function(label, i) {
-                        if (i < 8) { // Limitam numarul de randuri in legenda sa nu iasa din pagina
-                            var pct = totalCount > 0 ? Math.round((breakdown.values[i] / totalCount) * 100) : 0;
-                            pdf.text('• ' + label + ': ' + pct + '%', 15 + donutSize + 10, y + 10 + (i * 6));
+                    labels.forEach(function(label, i) {
+                        if (i < 8) {
+                            var legY = y + 10 + (i * 6);
+                            // Căsuța de culoare
+                            pdf.setFillColor(colors[i % colors.length]);
+                            pdf.rect(pageWidth / 2 - 25, legY - 3, 3, 3, 'F');
+                            // Text legendă
+                            pdf.setTextColor(60, 60, 60);
+                            pdf.text(label, pageWidth / 2 - 20, legY);
                         }
                     });
 
-                    y += donutSize + 15;
+                    // Label-uri Luni sub grafice
+                    pdf.setFontSize(10);
+                    pdf.setFont(mainFont, 'bold');
+                    pdf.setTextColor(12, 51, 90);
+                    pdf.text(monthLabel, 15 + 25, y + 55, { align: 'center' });
+                    pdf.text(compareMonthLabel, pageWidth - 15 - 25, y + 55, { align: 'center' });
+
+                    y += 65;
+                } else {
+                    // Un singur ring chart
+                    var donutChart = MonitorCharts.getDonutChart();
+                    if (donutChart && donutChart.canvas) {
+                        pdf.setFontSize(14);
+                        pdf.setFont(mainFont, 'bold');
+                        pdf.text(CONFIG.DONUT_TITLE[criterion] || 'Distribuție', 15, y);
+                        y += 5;
+
+                        var donutCanvas = donutChart.canvas;
+                        var donutImgData = donutCanvas.toDataURL('image/jpeg', 0.8);
+                        pdf.addImage(donutImgData, 'JPEG', 15, y, 55, 55);
+                        
+                        var currentCounty = countySelect ? countySelect.value : 'all';
+                        var breakdown = computeBreakdown(data, criterion, currentCounty);
+                        var totalCount = breakdown.values.reduce(function(a, b) { return a + b; }, 0);
+                        
+                        pdf.setFontSize(9);
+                        pdf.setFont(mainFont, 'normal');
+                        pdf.setTextColor(60, 60, 60);
+                        breakdown.labels.forEach(function(label, i) {
+                            if (i < 8) {
+                                var pct = totalCount > 0 ? Math.round((breakdown.values[i] / totalCount) * 100) : 0;
+                                pdf.text('• ' + label + ': ' + pct + '%', 15 + 65, y + 10 + (i * 6));
+                            }
+                        });
+                        y += 65;
+                    }
                 }
 
-                // 4. TABEL COMPLET
+                // 4. TABEL(E) COMPLETE
+                var columns = CONFIG.TABLE_COLUMNS[criterion] || [];
+                var tableHeaders = [columns.map(function(col) { return col.label; })];
+
+                // Tabel 1: Luna Curenta
                 pdf.addPage();
                 pdf.setTextColor(12, 51, 90);
                 pdf.setFontSize(16);
                 pdf.setFont(mainFont, 'bold');
-                pdf.text('Statistici Detaliate pe Județe', 15, 20);
+                pdf.text('Date Detaliate: ' + monthLabel, 15, 20);
 
-                var columns = CONFIG.TABLE_COLUMNS[state.currentCriterion];
-                var tableHeaders = [columns.map(function(col) { return col.label; })];
-                var tableData = state.data.map(function(row) {
+                var tableData1 = data.map(function(row) {
                     return columns.map(function(col) {
                         var val = row[col.key];
                         if (col.format === 'number') return (val || 0).toLocaleString('ro-RO');
@@ -253,43 +305,111 @@ var MonitorExport = (function () {
                 pdf.autoTable({
                     startY: 25,
                     head: tableHeaders,
-                    body: tableData,
+                    body: tableData1,
                     theme: 'striped',
                     headStyles: { fillColor: [12, 51, 90], textColor: 255, fontStyle: 'bold', font: mainFont },
                     styles: { fontSize: 8, cellPadding: 2, font: mainFont },
                     margin: { left: 15, right: 15 },
-                    didDrawPage: function (data) {
-                        // Footer pagina
+                    didDrawPage: function (d) {
                         pdf.setFontSize(8);
                         pdf.setFont(mainFont, 'normal');
                         pdf.setTextColor(150);
-                        pdf.text('Pagina ' + pdf.internal.getNumberOfPages(), 15, pageHeight - 10);
+                        pdf.text('Raport ' + monthLabel + ' | Pagina ' + pdf.internal.getNumberOfPages(), 15, pageHeight - 10);
                     }
                 });
 
+                // Tabel 2: Luna Comparativa (Daca exista)
+                if (compareData) {
+                    pdf.addPage();
+                    pdf.setTextColor(12, 51, 90);
+                    pdf.setFontSize(16);
+                    pdf.setFont(mainFont, 'bold');
+                    pdf.text('Date Detaliate: ' + compareMonthLabel, 15, 20);
+
+                    var tableData2 = compareData.map(function(row) {
+                        return columns.map(function(col) {
+                            var val = row[col.key];
+                            if (col.format === 'number') return (val || 0).toLocaleString('ro-RO');
+                            if (col.format === 'rate') return val + '%';
+                            return val;
+                        });
+                    });
+
+                    pdf.autoTable({
+                        startY: 25,
+                        head: tableHeaders,
+                        body: tableData2,
+                        theme: 'striped',
+                        headStyles: { fillColor: [64, 97, 138], textColor: 255, fontStyle: 'bold', font: mainFont },
+                        styles: { fontSize: 8, cellPadding: 2, font: mainFont },
+                        margin: { left: 15, right: 15 },
+                        didDrawPage: function (d) {
+                            pdf.setFontSize(8);
+                            pdf.setFont(mainFont, 'normal');
+                            pdf.setTextColor(150);
+                            pdf.text('Raport ' + compareMonthLabel + ' | Pagina ' + pdf.internal.getNumberOfPages(), 15, pageHeight - 10);
+                        }
+                    });
+                }
+
                 // 5. PREVIEW & PRINT
-                // Auto-print pentru CUPS-PDF
                 pdf.autoPrint();
-                
-                // Generam Blob-ul o singura data
                 var pdfOutput = pdf.output('blob');
                 var blobUrl = URL.createObjectURL(pdfOutput);
-                
-                // Deschidem in fereastra noua
                 var newWindow = window.open(blobUrl, '_blank');
+                
                 if (!newWindow) {
-                    // Daca popup blocker e activ, facem fallback la download
-                    pdf.save('somaj_raport_complet.pdf');
+                    var outName = 'somaj_raport_' + month;
+                    if (compareMonth) outName += '_vs_' + compareMonth;
+                    pdf.save(outName + '.pdf');
                     alert('Vă rugăm să permiteți pop-up-urile pentru a vedea previzualizarea PDF.');
                 }
 
                 if (btn) btn.textContent = originalText;
             } catch (err) {
                 console.error('Eroare la generarea PDF:', err);
-                alert('A apărut o eroare la generarea PDF-ului. Datele ar putea fi prea mari pentru browser.');
+                alert('A apărut o eroare la generarea PDF-ului.');
                 if (btn) btn.textContent = originalText;
             }
         }, 100);
+    }
+
+    /**
+     * Helper pentru a genera o imagine a unui grafic donut pentru PDF folosind un canvas off-screen
+     */
+    function generateDonutImage(data, criterion, county) {
+        var breakdown = computeBreakdown(data, criterion, county);
+        var canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 400;
+        
+        // Cream un chart temporar
+        var chart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: breakdown.labels,
+                datasets: [{
+                    data: breakdown.values,
+                    backgroundColor: breakdown.labels.map(function (_, i) {
+                        return MonitorCharts.COLORS.palette[i % MonitorCharts.COLORS.palette.length];
+                    }),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: false,
+                animation: false,
+                cutout: '65%',
+                plugins: { 
+                    legend: { display: false } 
+                }
+            }
+        });
+
+        var imgData = canvas.toDataURL('image/jpeg', 0.8);
+        chart.destroy();
+        return { imgData: imgData, breakdown: breakdown };
     }
 
     /**
