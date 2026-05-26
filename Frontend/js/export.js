@@ -9,6 +9,48 @@
 
 var MonitorExport = (function () {
 
+    var cachedRobotoRegular = null;
+    var cachedRobotoBold = null;
+
+    /**
+     * Incarca fonturile Roboto Regular si Bold asincron si le converteste in Base64
+     * @returns {Promise} Rezolva cu un obiect ce contine base64-urile celor doua fonturi
+     */
+    function loadRobotoFonts() {
+        if (cachedRobotoRegular && cachedRobotoBold) {
+            return Promise.resolve({ regular: cachedRobotoRegular, bold: cachedRobotoBold });
+        }
+
+        var regUrl = 'fonts/Roboto-Regular.ttf';
+        var boldUrl = 'fonts/Roboto-Bold.ttf';
+
+        function fetchFont(url) {
+            return fetch(url)
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Nu s-a putut descarca fontul de la adresa: ' + url);
+                    }
+                    return response.arrayBuffer();
+                })
+                .then(function (arrayBuffer) {
+                    var bytes = new Uint8Array(arrayBuffer);
+                    var binary = '';
+                    var len = bytes.byteLength;
+                    for (var i = 0; i < len; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return window.btoa(binary);
+                });
+        }
+
+        return Promise.all([fetchFont(regUrl), fetchFont(boldUrl)])
+            .then(function (results) {
+                cachedRobotoRegular = results[0];
+                cachedRobotoBold = results[1];
+                return { regular: cachedRobotoRegular, bold: cachedRobotoBold };
+            });
+    }
+
     /**
      * Exporta datele curente ca fisier CSV
      * @param {Array} data - array de obiecte din API
@@ -126,6 +168,17 @@ var MonitorExport = (function () {
 
         // Folosim un timeout scurt pentru a lasa UI-ul sa se actualizeze
         setTimeout(function() {
+            loadRobotoFonts()
+                .then(function (fonts) {
+                    generatePDFWithFonts(fonts.regular, fonts.bold);
+                })
+                .catch(function (error) {
+                    console.error('Eroare la incarcarea fonturilor Roboto (se foloseste helvetica ca fallback):', error);
+                    generatePDFWithFonts(null, null);
+                });
+        }, 100);
+
+        function generatePDFWithFonts(regBase64, boldBase64) {
             try {
                 var jsPDF = window.jspdf.jsPDF;
                 var pdf = new jsPDF('p', 'mm', 'a4');
@@ -133,17 +186,17 @@ var MonitorExport = (function () {
                 // Incarcam fonturile pentru suport diacritice (Romanian)
                 var hasRoboto = false;
                 try {
-                    if (typeof FONT_ROBOTO_REGULAR !== 'undefined' && FONT_ROBOTO_REGULAR.length > 1000) {
-                        pdf.addFileToVFS('Roboto-Regular.ttf', FONT_ROBOTO_REGULAR);
+                    if (regBase64) {
+                        pdf.addFileToVFS('Roboto-Regular.ttf', regBase64);
                         pdf.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
                         hasRoboto = true;
                     }
-                    if (typeof FONT_ROBOTO_BOLD !== 'undefined' && FONT_ROBOTO_BOLD.length > 1000) {
-                        pdf.addFileToVFS('Roboto-Bold.ttf', FONT_ROBOTO_BOLD);
+                    if (boldBase64) {
+                        pdf.addFileToVFS('Roboto-Bold.ttf', boldBase64);
                         pdf.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
                     }
                 } catch (e) {
-                    console.error('Eroare la incarcarea fonturilor:', e);
+                    console.error('Eroare la adaugarea fonturilor in VFS:', e);
                 }
                 
                 var mainFont = hasRoboto ? 'Roboto' : 'helvetica';
@@ -371,8 +424,7 @@ var MonitorExport = (function () {
                 alert('A apărut o eroare la generarea PDF-ului.');
                 if (btn) btn.textContent = originalText;
             }
-        }, 100);
-    }
+        }
 
     /**
      * Helper pentru a genera o imagine a unui grafic donut pentru PDF folosind un canvas off-screen

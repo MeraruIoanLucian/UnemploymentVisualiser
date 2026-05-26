@@ -278,7 +278,6 @@ sort($counties);
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <!-- Scripturi proprii -->
-    <script src="/js/fonts.js"></script>
     <script src="/js/charts.js"></script>
     <script src="/js/map.js"></script>
     <script src="/js/export.js"></script>

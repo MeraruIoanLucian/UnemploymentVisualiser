@@ -29,7 +29,7 @@
 
 \maketitle
 \tableofcontents
-\newpage
+
 
 \section{Problem Definition}
 Acest proiect presupune dezvoltarea unei aplicații web ce afișează datele despre șomajul în România prin anumite criterii (Rata de Șomaj, Mediul de proveniență, Vârstă, Nivel de Educație, etc.) și o anumită dată. Datele sunt preluate din \textbf{data.gov.ro} și aplicația are posibilitatea de a compara datele dintr-o anumită perioadă cu alta. Aplicația permite exportul de date prin CSV și PDF plus exportul grafurilor în SVG. De asemenea, aplicația dispune și de un sistem de caching pentru îmbunătățirea preluării datelor.
@@ -293,7 +293,7 @@ Deoarece Chart.js utilizează elementul \texttt{<canvas>} (bazat pe pixeli), exp
 \subsubsection{Export PDF (Raport Complet)}
 Folosește \textbf{jsPDF} și \textbf{jspdf-autotable} pentru un document multi-pagină:
 \begin{itemize}
-    \item \textbf{Fonturi Custom}: Embedează fontul \textbf{Roboto} (Normal/Bold) sub formă de Base64 pentru suportul diacriticelor.
+    \item \textbf{Fonturi Custom}: Încarcă fontul \textbf{Roboto} (Normal/Bold) asincron la runtime din directorul local pentru suportul diacriticelor, reducând dimensiunea inițială a paginii.
     \item \textbf{Integritate}: Spre deosebire de alte metode, PDF-ul re-parcurge întreg setul de date din \texttt{state.data} pentru a genera un tabel complet, ignorând limitările de paginare ale UI-ului.
     \item \textbf{Print Workflow}: Utilizează \texttt{pdf.autoPrint()} pentru a declanșa automat dialogul de sistem, facilitând utilizarea virtualizării precum \texttt{cups-pdf}.
 \end{itemize}
