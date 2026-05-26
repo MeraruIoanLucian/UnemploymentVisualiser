@@ -2,123 +2,36 @@
 
 namespace models;
 
-use JsonSerializable;
-
-class UnemploymentDataPerEducationLevel implements JsonSerializable
+/**
+ * Class UnemploymentDataPerEducationLevel
+ *
+ * Represents the distribution of unemployed individuals across different education levels for a single county.
+ * Maps to data extracted from 'nivel-educatie.csv'.
+ *
+ * @package models
+ */
+class UnemploymentDataPerEducationLevel
 {
-    private string $county;
-    private int $noStudy;
-    private int $primaryStudy;
-    private int $middleStudy;
-    private int $highStudy;
-    private int $postHighStudy;
-    private int $professionalStudy;
-    private int $universityStudy;
-
     /**
-     * @param string $county
-     * @param int $noStudy
-     * @param int $primaryStudy
-     * @param int $middleStudy
-     * @param int $highStudy
-     * @param int $postHighStudy
-     * @param int $professionalStudy
-     * @param int $universityStudy
+     * UnemploymentDataPerEducationLevel constructor.
+     *
+     * @param string $county The name of the county (județ).
+     * @param int $noStudy Number of unemployed individuals with no studies/education.
+     * @param int $primaryStudy Number of unemployed individuals with primary education (învățământ primar).
+     * @param int $middleStudy Number of unemployed individuals with middle school education (gimnazial).
+     * @param int $highStudy Number of unemployed individuals with high school education (liceal).
+     * @param int $postHighStudy Number of unemployed individuals with post-high school education (postliceal).
+     * @param int $professionalStudy Number of unemployed individuals with vocational/professional school education (profesional/arte și meserii).
+     * @param int $universityStudy Number of unemployed individuals with university/higher education (universitar).
      */
-    public function __construct(string $county, int $noStudy, int $primaryStudy, int $middleStudy, int $highStudy, int $postHighStudy, int $professionalStudy, int $universityStudy)
-    {
-        $this->county = $county;
-        $this->noStudy = $noStudy;
-        $this->primaryStudy = $primaryStudy;
-        $this->middleStudy = $middleStudy;
-        $this->highStudy = $highStudy;
-        $this->postHighStudy = $postHighStudy;
-        $this->professionalStudy = $professionalStudy;
-        $this->universityStudy = $universityStudy;
-    }
-
-    public function getCounty(): string
-    {
-        return $this->county;
-    }
-
-    public function setCounty(string $county): void
-    {
-        $this->county = $county;
-    }
-
-    public function getNoStudy(): int
-    {
-        return $this->noStudy;
-    }
-
-    public function setNoStudy(int $noStudy): void
-    {
-        $this->noStudy = $noStudy;
-    }
-
-    public function getPrimaryStudy(): int
-    {
-        return $this->primaryStudy;
-    }
-
-    public function setPrimaryStudy(int $primaryStudy): void
-    {
-        $this->primaryStudy = $primaryStudy;
-    }
-
-    public function getMiddleStudy(): int
-    {
-        return $this->middleStudy;
-    }
-
-    public function setMiddleStudy(int $middleStudy): void
-    {
-        $this->middleStudy = $middleStudy;
-    }
-
-    public function getHighStudy(): int
-    {
-        return $this->highStudy;
-    }
-
-    public function setHighStudy(int $highStudy): void
-    {
-        $this->highStudy = $highStudy;
-    }
-
-    public function getPostHighStudy(): int
-    {
-        return $this->postHighStudy;
-    }
-
-    public function setPostHighStudy(int $postHighStudy): void
-    {
-        $this->postHighStudy = $postHighStudy;
-    }
-
-    public function getProfessionalStudy(): int
-    {
-        return $this->professionalStudy;
-    }
-
-    public function setProfessionalStudy(int $professionalStudy): void
-    {
-        $this->professionalStudy = $professionalStudy;
-    }
-
-    public function getUniversityStudy(): int
-    {
-        return $this->universityStudy;
-    }
-
-    public function setUniversityStudy(int $universityStudy): void
-    {
-        $this->universityStudy = $universityStudy;
-    }
-
-    public function jsonSerialize(): array
-    {
-        return get_object_vars($this);
-    }
+    public function __construct(
+        public string $county,
+        public int $noStudy,
+        public int $primaryStudy,
+        public int $middleStudy,
+        public int $highStudy,
+        public int $postHighStudy,
+        public int $professionalStudy,
+        public int $universityStudy
+    ) {}
 }

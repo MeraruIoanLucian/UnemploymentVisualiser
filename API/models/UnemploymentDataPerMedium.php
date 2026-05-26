@@ -2,100 +2,40 @@
 
 namespace models;
 
-use JsonSerializable;
-
-class UnemploymentDataPerMedium implements JsonSerializable
+/**
+ * Class UnemploymentDataPerMedium
+ *
+ * Represents the distribution of unemployed individuals by environment (Urban vs. Rural) and gender for a single county.
+ * Maps to data extracted from 'medii.csv'.
+ *
+ * @package models
+ */
+class UnemploymentDataPerMedium
 {
-    private string $county;
-    private int $totalUnemployed;
-    private int $totalFemaleUnemployed;
-    private int $totalMaleUnemployed;
-    private int $totalUnemployedUrban;
-    private int $totalFemaleUnemployedUrban;
-    private int $totalMaleUnemployedUrban;
-    private int $totalUnemployedRural;
-    private int $totalFemaleUnemployedRural;
-    private int $totalMaleUnemployedRural;
-
     /**
-     * @param string $county
-     * @param int $totalUnemployed
-     * @param int $totalFemaleUnemployed
-     * @param int $totalMaleUnemployed
-     * @param int $totalUnemployedUrban
-     * @param int $totalFemaleUnemployedUrban
-     * @param int $totalMaleUnemployedUrban
-     * @param int $totalUnemployedRural
-     * @param int $totalFemaleUnemployedRural
-     * @param int $totalMaleUnemployedRural
+     * UnemploymentDataPerMedium constructor.
+     *
+     * @param string $county The name of the county (județ).
+     * @param int $totalUnemployed Total number of unemployed individuals.
+     * @param int $totalFemaleUnemployed Total number of unemployed females.
+     * @param int $totalMaleUnemployed Total number of unemployed males.
+     * @param int $totalUnemployedUrban Total number of unemployed individuals in urban environments.
+     * @param int $totalFemaleUnemployedUrban Number of unemployed females in urban environments.
+     * @param int $totalMaleUnemployedUrban Number of unemployed males in urban environments.
+     * @param int $totalUnemployedRural Total number of unemployed individuals in rural environments.
+     * @param int $totalFemaleUnemployedRural Number of unemployed females in rural environments.
+     * @param int $totalMaleUnemployedRural Number of unemployed males in rural environments.
      */
-    public function __construct(string $county, int $totalUnemployed, int $totalFemaleUnemployed, int $totalMaleUnemployed, int $totalUnemployedUrban, int $totalFemaleUnemployedUrban, int $totalMaleUnemployedUrban, int $totalUnemployedRural, int $totalFemaleUnemployedRural, int $totalMaleUnemployedRural)
-    {
-        $this->county = $county;
-        $this->totalUnemployed = $totalUnemployed;
-        $this->totalFemaleUnemployed = $totalFemaleUnemployed;
-        $this->totalMaleUnemployed = $totalMaleUnemployed;
-        $this->totalUnemployedUrban = $totalUnemployedUrban;
-        $this->totalFemaleUnemployedUrban = $totalFemaleUnemployedUrban;
-        $this->totalMaleUnemployedUrban = $totalMaleUnemployedUrban;
-        $this->totalUnemployedRural = $totalUnemployedRural;
-        $this->totalFemaleUnemployedRural = $totalFemaleUnemployedRural;
-        $this->totalMaleUnemployedRural = $totalMaleUnemployedRural;
-    }
-
-
-    public function getCounty(): string
-    {
-        return $this->county;
-    }
-
-    public function getTotalUnemployed(): int
-    {
-        return $this->totalUnemployed;
-    }
-
-    public function getTotalFemaleUnemployed(): int
-    {
-        return $this->totalFemaleUnemployed;
-    }
-
-    public function getTotalMaleUnemployed(): int
-    {
-        return $this->totalMaleUnemployed;
-    }
-
-    public function getTotalUnemployedUrban(): int
-    {
-        return $this->totalUnemployedUrban;
-    }
-
-    public function getTotalFemaleUnemployedUrban(): int
-    {
-        return $this->totalFemaleUnemployedUrban;
-    }
-
-    public function getTotalMaleUnemployedUrban(): int
-    {
-        return $this->totalMaleUnemployedUrban;
-    }
-
-    public function getTotalUnemployedRural(): int
-    {
-        return $this->totalUnemployedRural;
-    }
-
-    public function getTotalFemaleUnemployedRural(): int
-    {
-        return $this->totalFemaleUnemployedRural;
-    }
-
-    public function getTotalMaleUnemployedRural(): int
-    {
-        return $this->totalMaleUnemployedRural;
-    }
-
-    public function jsonSerialize(): array
-    {
-        return get_object_vars($this);
-    }
+    public function __construct(
+        public string $county,
+        public int $totalUnemployed,
+        public int $totalFemaleUnemployed,
+        public int $totalMaleUnemployed,
+        public int $totalUnemployedUrban,
+        public int $totalFemaleUnemployedUrban,
+        public int $totalMaleUnemployedUrban,
+        public int $totalUnemployedRural,
+        public int $totalFemaleUnemployedRural,
+        public int $totalMaleUnemployedRural
+    ) {}
 }

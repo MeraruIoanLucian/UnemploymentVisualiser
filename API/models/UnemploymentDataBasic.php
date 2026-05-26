@@ -2,87 +2,38 @@
 
 namespace models;
 
-//Fallback Unemployment Data Display
-use JsonSerializable;
-
-class UnemploymentDataBasic implements JsonSerializable
+/**
+ * Class UnemploymentDataBasic
+ * 
+ * Represents the general (basic) unemployment statistics for a single county.
+ * Maps to data extracted from 'rata.csv'.
+ * 
+ * @package models
+ */
+class UnemploymentDataBasic
 {
-    // Using PHP 8+ constructor property promotion for a more concise DTO.
     /**
-     * @param string $county
-     * @param int $nrUnemployed
-     * @param int $nrFemaleUnemployed
-     * @param int $nrMaleUnemployed
-     * @param int $nrCompensatedUnemployed
-     * @param int $nrNonCompensatedUnemployed
-     * @param float $unemploymentRate
-     * @param float $femaleUnemploymentRate
-     * @param float $maleUnemploymentRate
+     * UnemploymentDataBasic constructor.
+     *
+     * @param string $county The name of the county (județ).
+     * @param int $nrUnemployed Total number of unemployed individuals.
+     * @param int $nrFemaleUnemployed Number of unemployed females.
+     * @param int $nrMaleUnemployed Number of unemployed males.
+     * @param int $nrCompensatedUnemployed Number of unemployed individuals receiving unemployment compensation.
+     * @param int $nrNonCompensatedUnemployed Number of unemployed individuals not receiving compensation.
+     * @param float $unemploymentRate General unemployment rate (percentage).
+     * @param float $femaleUnemploymentRate Female unemployment rate (percentage).
+     * @param float $maleUnemploymentRate Male unemployment rate (percentage).
      */
     public function __construct(
-        private string $county,
-        private int $nrUnemployed, // Changed from float, as it's a count of people.
-        private int $nrFemaleUnemployed,
-        private int $nrMaleUnemployed,
-        private int $nrCompensatedUnemployed,
-        private int $nrNonCompensatedUnemployed,
-        private float $unemploymentRate,
-        private float $femaleUnemploymentRate,
-        private float $maleUnemploymentRate
-    )
-    {
-    }
-
-    public function getCounty(): string
-    {
-        return $this->county;
-    }
-
-    public function getNrUnemployed(): int
-    {
-        return $this->nrUnemployed;
-    }
-
-    public function getNrFemaleUnemployed(): int
-    {
-        return $this->nrFemaleUnemployed;
-    }
-
-    public function getNrMaleUnemployed(): int
-    {
-        return $this->nrMaleUnemployed;
-    }
-
-    public function getNrCompensatedUnemployed(): int
-    {
-        return $this->nrCompensatedUnemployed;
-    }
-
-    public function getNrNonCompensatedUnemployed(): int
-    {
-        return $this->nrNonCompensatedUnemployed;
-    }
-
-    public function getUnemploymentRate(): float
-    {
-        return $this->unemploymentRate;
-    }
-
-    public function getFemaleUnemploymentRate(): float
-    {
-        return $this->femaleUnemploymentRate;
-    }
-
-    public function getMaleUnemploymentRate(): float
-    {
-        return $this->maleUnemploymentRate;
-    }
-
-    /**
-     * Specify data which should be serialized to JSON
-     */
-    public function jsonSerialize(): array
-    {
-        return get_object_vars($this);
-    }
+        public string $county,
+        public int $nrUnemployed,
+        public int $nrFemaleUnemployed,
+        public int $nrMaleUnemployed,
+        public int $nrCompensatedUnemployed,
+        public int $nrNonCompensatedUnemployed,
+        public float $unemploymentRate,
+        public float $femaleUnemploymentRate,
+        public float $maleUnemploymentRate
+    ) {}
 }

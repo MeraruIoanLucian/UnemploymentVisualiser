@@ -1,1 +1,23 @@
+# Caching and vendors
 **/cache/**
+API/vendor/
+
+# LaTeX auxiliary files (exclude main.pdf)
+documentation/*.aux
+documentation/*.log
+documentation/*.out
+documentation/*.toc
+documentation/*.synctex.gz
+documentation/*.fdb_latexmk
+documentation/*.fls
+
+# IDE / Editor configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db

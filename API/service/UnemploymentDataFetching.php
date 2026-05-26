@@ -12,18 +12,47 @@ use models\UnemploymentDataPerMedium;
 use models\UnemploymentDataPerAgeRange;
 use models\UnemploymentDataPerEducationLevel;
 
+/**
+ * Class UnemploymentDataFetching
+ *
+ * Coordinated data orchestrator responsible for checking local caches, fetching CSV files from
+ * data.gov.ro via FileParser, sanitizing input data (correcting encoding issues like "Caraș-Severin"),
+ * and parsing CSV structures into typed Data Transfer Objects (DTOs).
+ */
 class UnemploymentDataFetching
 {
+    /**
+     * @var array Configuration mapping packages to their package_id and contents (resource IDs).
+     */
     private array $config;
-    private CacheSystem $cacheSystem;
-    private const DATA_GOV_BASE_URL = 'https://data.gov.ro/dataset/';
 
+    /**
+     * @var CacheSystem Instance of CacheSystem for handling local caching.
+     */
+    private CacheSystem $cacheSystem;
+
+    /**
+     * @var string Base URL for downloading datasets from data.gov.ro.
+     */
+    private const string DATA_GOV_BASE_URL = 'https://data.gov.ro/dataset/';
+
+    /**
+     * UnemploymentDataFetching constructor.
+     *
+     * @param array $config Configuration mapping packages to metadata and file resource IDs.
+     */
     public function __construct(array $config)
     {
         $this->config = $config;
         $this->cacheSystem = new CacheSystem();
     }
-
+    /**
+     * Retrieve the dataset package ID and specific resource ID from the configuration.
+     *
+     * @param string $packageName The name of the month/package (e.g. 'mai2025').
+     * @param string $fileName The name of the file being fetched (e.g. 'rata.csv').
+     * @return array{package_id: string, resource_id: string}|null Array containing package_id and resource_id, or null if not found.
+     */
     private function getResourceInfo(string $packageName, string $fileName): ?array
     {
         if (!isset($this->config[$packageName])) {
@@ -42,24 +71,31 @@ class UnemploymentDataFetching
     }
 
     /**
-     * Fetches and parses unemployment data from a remote CSV file based on the file name.
+     * Fetches, caches, parses, and sanitizes unemployment data from data.gov.ro.
      *
-     * @param string $packageName
-     * @param string $fileName
-     * @return array
-     * @throws Exception
+     * First checks if a cached copy exists. If not, it requests the CSV file from data.gov.ro,
+     * writes it to cache, parses it using fgetcsv (auto-detecting ',' or ';' delimiters),
+     * and maps each row into the corresponding model object.
+     *
+     * @param string $packageName The package (month/year) to fetch (e.g., 'mai2025').
+     * @param string $fileName The file identifier (e.g., 'rata.csv', 'medii.csv', 'varste.csv', 'nivel-educatie.csv').
+     * @return array<UnemploymentDataBasic|UnemploymentDataPerMedium|UnemploymentDataPerAgeRange|UnemploymentDataPerEducationLevel> List of parsed models.
+     * @throws Exception If the resource is not configured (404), fails to fetch (502), or data content is empty (500).
      */
     public function getUnemploymentData(string $packageName, string $fileName): array
     {
+        # Retrieves the Package and Resource id
         $resourceInfo = $this->getResourceInfo($packageName, $fileName);
 
         if ($resourceInfo === null) {
             throw new Exception("Resource '$fileName' for package '$packageName' not found in configuration.", 404);
         }
 
+        # First we check if the cached file exists
         $cacheFileName = "{$packageName}_{$fileName}";
         $csvContent = $this->cacheSystem->get($cacheFileName);
 
+        # If the cached file doesn't exist, we fetch data from data.gov.ro and store it to the cache directory
         if ($csvContent === null) {
             $packageId = $resourceInfo['package_id'];
             $resourceId = $resourceInfo['resource_id'];
@@ -68,6 +104,10 @@ class UnemploymentDataFetching
 
             $csvContent = FileParser::fetchUrl($url);
 
+            if ($csvContent === false) {
+                throw new Exception("Failed to fetch data from remote source for package '$packageName', file '$fileName'.", 502);
+            }
+
             $this->cacheSystem->put($cacheFileName, $csvContent);
         }
 
@@ -75,20 +115,27 @@ class UnemploymentDataFetching
             throw new Exception("Fetched content for '$fileName' is empty.", 500);
         }
 
-        $lines = str_getcsv($csvContent, "\n");
-        array_shift($lines);
+        # We open a temporary stream to store CSV contents
+
+        $stream = fopen('php://temp', 'r+');
+        fwrite($stream, $csvContent);
+        rewind($stream);
+
+        // Skip the header line
+        $headerLine = fgets($stream);
+        $delimiter = ',';
+        if ($headerLine !== false && str_contains($headerLine, ';')) {
+            $delimiter = ';';
+        }
 
         $unemploymentData = [];
         $totalKeywords = ['Total', 'Total TARA', 'TOTAL', 'Total general'];
 
-        foreach ($lines as $line) {
-            if (trim($line) === '') {
+        # Parsing the CSV File
+        while (($row = fgetcsv($stream, 0, $delimiter, '"', '')) !== false) {
+            # Skip empty rows
+            if (empty($row) || $row[0] === null) {
                 continue;
-            }
-
-            $row = str_getcsv($line, ';');
-            if (count($row) < 2) {
-                $row = str_getcsv($line, ',');
             }
 
             // Skip header/total rows or rows without a county name
@@ -104,6 +151,7 @@ class UnemploymentDataFetching
                     $countyName = 'CARAS-SEVERIN';
                 }
 
+                # Serializing data based off the file name
                 switch ($fileName) {
                     case 'rata.csv':
                         if (count($row) < 9) {
@@ -173,6 +221,7 @@ class UnemploymentDataFetching
             }
         }
 
+        fclose($stream);
         return $unemploymentData;
     }
 }
