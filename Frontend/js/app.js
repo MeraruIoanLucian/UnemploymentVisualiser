@@ -676,11 +676,11 @@ function setupEventListeners() {
     if (elements.btnPDF) {
         elements.btnPDF.addEventListener('click', function () {
             MonitorExport.toPDF(
-                state.data, 
-                state.currentCriterion, 
-                state.currentMonth, 
-                this, 
-                state.isComparing ? state.compareData : null, 
+                state.data,
+                state.currentCriterion,
+                state.currentMonth,
+                this,
+                state.isComparing ? state.compareData : null,
                 state.compareMonth
             );
         });
@@ -706,11 +706,11 @@ function setupEventListeners() {
     if (elements.btnExportMain) {
         elements.btnExportMain.addEventListener('click', function () {
             MonitorExport.toPDF(
-                state.data, 
-                state.currentCriterion, 
-                state.currentMonth, 
-                this, 
-                state.isComparing ? state.compareData : null, 
+                state.data,
+                state.currentCriterion,
+                state.currentMonth,
+                this,
+                state.isComparing ? state.compareData : null,
                 state.compareMonth
             );
         });
