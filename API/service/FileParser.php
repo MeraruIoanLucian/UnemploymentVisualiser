@@ -2,32 +2,52 @@
 
 class FileParser
 {
-    public static function fetchUrl($url)
+    public static function fetchUrl($url): bool|string
     {
+        if (empty($url) || !is_string($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+            error_log("Invalid or empty URL provided to FileParser::fetchUrl: " . var_export($url, true));
+            return false;
+        }
+
         if (!function_exists('curl_init')) {
-            throw new Exception("cURL extension is not installed or enabled, which is required to fetch data.", 500);
+            error_log("cURL extension is not installed or enabled.");
+            return false;
         }
 
         $curl_ini = curl_init();
-        curl_setopt($curl_ini, CURLOPT_URL, $url);
-        curl_setopt($curl_ini, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl_ini, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($curl_ini, CURLOPT_TIMEOUT, 30);
-        $content = curl_exec($curl_ini);
-        $curlError = curl_error($curl_ini);
-        $httpCode = curl_getinfo($curl_ini, CURLINFO_HTTP_CODE);
-        curl_close($curl_ini);
-
-        if ($content === false) {
-            throw new Exception("cURL error while fetching '$url': " . $curlError, 500);
+        if ($curl_ini === false) {
+            error_log("Failed to initialize cURL session.");
+            return false;
         }
 
-        if ($httpCode !== 200) {
-            // Using 502 Bad Gateway as it indicates an invalid response from an upstream server.
-            throw new Exception("Failed to fetch '$url'. Upstream server responded with HTTP status code: " . $httpCode, 502);
-        }
+        try {
+            curl_setopt_array($curl_ini, array(
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 30,
+            ));
 
-        return $content;
+            $content = curl_exec($curl_ini);
+            $curlError = curl_error($curl_ini);
+            $httpCode = curl_getinfo($curl_ini, CURLINFO_HTTP_CODE);
+            unset($curl_ini);
+
+            if ($content === false) {
+                error_log("cURL error while fetching '$url': " . $curlError);
+                return false;
+            }
+
+            if ($httpCode !== 200) {
+                error_log("Failed to fetch '$url'. Upstream server responded with HTTP status code: " . $httpCode);
+                return false;
+            }
+
+            return $content;
+        } catch (Throwable $e) {
+            error_log("An error occurred in FileParser::fetchUrl while fetching '$url': " . $e->getMessage());
+            return false;
+        }
     }
 
 }

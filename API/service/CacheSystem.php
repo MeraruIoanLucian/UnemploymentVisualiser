@@ -1,61 +1,37 @@
 <?php
 
-use models\CsvCacheEntry;
-
-require_once __DIR__ . "/../models/CsvCacheEntry.php";
-
 class CacheSystem
 {
-    private const CACHE_DIR = __DIR__ . '/../cache';
+    private const string CACHE_DIR = __DIR__ . '/../cache';
+    private const int CACHE_LIFETIME = 7 * 24 * 60 * 60; // 7 days in seconds
 
     public function __construct()
     {
         if (!is_dir(self::CACHE_DIR)) {
-            mkdir(self::CACHE_DIR, 0777, true);
+            @mkdir(self::CACHE_DIR, 0777, true);
         }
     }
 
     /**
-     * @return CsvCacheEntry[]
+     * Clean cache files older than the specified lifetime.
+     *
+     * @param int $lifetime Lifetime in seconds
+     * @return void
      */
-    public function getAll(): array
+    public function cleanExpired(int $lifetime = self::CACHE_LIFETIME): void
     {
-        $cachedFiles = [];
-        $files = scandir(self::CACHE_DIR);
-
-        foreach ($files as $file) {
-            if ($file === '.' || $file === '..') {
-                continue;
-            }
-            $filePath = self::CACHE_DIR . '/' . $file;
-            if (is_file($filePath)) {
-                $cachedFiles[] = new CsvCacheEntry(
-                    filesize($filePath),
-                    $file,
-                    // Format timestamp into an ISO 8601 date string
-                    date('c', filemtime($filePath))
-                );
+        if (is_dir(self::CACHE_DIR)) {
+            foreach (scandir(self::CACHE_DIR) as $file) {
+                if ($file !== '.' && $file !== '..') {
+                    $filePath = self::CACHE_DIR . '/' . $file;
+                    if (is_file($filePath) && filemtime($filePath) < (time() - $lifetime)) {
+                        @unlink($filePath);
+                    }
+                }
             }
         }
-
-        return $cachedFiles;
     }
 
-    public function getByName(string $name): ?CsvCacheEntry
-    {
-        $file_path = self::CACHE_DIR . '/' . $name;
-        if (is_file($file_path)) {
-            $cachedFile = new CsvCacheEntry(
-                filesize($file_path),
-                $name,
-                // Format timestamp into an ISO 8601 date string
-                date('c', filemtime($file_path))
-            );
-            return $cachedFile;
-        } else {
-            return null;
-        }
-    }
 
     public function get(string $name): ?string
     {
@@ -70,25 +46,5 @@ class CacheSystem
     {
         $cacheFile = self::CACHE_DIR . '/' . $name;
         @file_put_contents($cacheFile, $content);
-    }
-
-    public function delete(string $name): bool
-    {
-        $cacheFile = self::CACHE_DIR . '/' . $name;
-        if (file_exists($cacheFile)) {
-            return unlink($cacheFile);
-        }
-        return false;
-    }
-
-    public function clear(): void
-    {
-        $files = glob(self::CACHE_DIR . '/*');
-        foreach ($files as $file) {
-            if (is_file($file)) {
-                unlink($file);
-            }
-        }
-        rmdir(self::CACHE_DIR);
     }
 }

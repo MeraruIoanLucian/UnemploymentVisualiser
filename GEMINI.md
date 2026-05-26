@@ -19,7 +19,7 @@ Proiectul este o aplicație web de tip dashboard care preia, procesează și viz
   - `UnemploymentDataFetching.php`: Logica de orchestrare pentru preluarea datelor (verifica cache-ul, apelează cURL, parsează și curăță datele).
   - `FileParser.php`: Utilitar pentru cereri HTTP și parsare CSV (suportă delimitatori `;` și `,`).
   - `CacheSystem.php`: Implementează stocarea locală în `API/cache/` cu o politică de Time-To-Live (TTL) de 7 zile.
-- **`models/`**: Obiecte de date (DTO) tipizate care implementează `JsonSerializable`:
+- **`models/`**: Obiecte de date (DTO) tipizate:
   - `UnemploymentDataBasic`: Date generale (rata șomajului).
   - `UnemploymentDataPerAgeRange`: Distribuție pe grupe de vârstă.
   - `UnemploymentDataPerEducationLevel`: Distribuție pe nivel de studii.

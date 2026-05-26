@@ -16,14 +16,14 @@ class UnemploymentDataFetching
 {
     private array $config;
     private CacheSystem $cacheSystem;
-    private const DATA_GOV_BASE_URL = 'https://data.gov.ro/dataset/';
+    private const string DATA_GOV_BASE_URL = 'https://data.gov.ro/dataset/';
 
     public function __construct(array $config)
     {
         $this->config = $config;
         $this->cacheSystem = new CacheSystem();
     }
-
+    # Private method to get the package ID and resource ID
     private function getResourceInfo(string $packageName, string $fileName): ?array
     {
         if (!isset($this->config[$packageName])) {
@@ -51,15 +51,18 @@ class UnemploymentDataFetching
      */
     public function getUnemploymentData(string $packageName, string $fileName): array
     {
+        # Retrieves the Package and Resource id
         $resourceInfo = $this->getResourceInfo($packageName, $fileName);
 
         if ($resourceInfo === null) {
             throw new Exception("Resource '$fileName' for package '$packageName' not found in configuration.", 404);
         }
 
+        # First we check if the cached file exists
         $cacheFileName = "{$packageName}_{$fileName}";
         $csvContent = $this->cacheSystem->get($cacheFileName);
 
+        # If the cached file doesn't exist, we fetch data from data.gov.ro and store it to the cache directory
         if ($csvContent === null) {
             $packageId = $resourceInfo['package_id'];
             $resourceId = $resourceInfo['resource_id'];
@@ -68,6 +71,10 @@ class UnemploymentDataFetching
 
             $csvContent = FileParser::fetchUrl($url);
 
+            if ($csvContent === false) {
+                throw new Exception("Failed to fetch data from remote source for package '$packageName', file '$fileName'.", 502);
+            }
+
             $this->cacheSystem->put($cacheFileName, $csvContent);
         }
 
@@ -75,20 +82,27 @@ class UnemploymentDataFetching
             throw new Exception("Fetched content for '$fileName' is empty.", 500);
         }
 
-        $lines = str_getcsv($csvContent, "\n");
-        array_shift($lines);
+        # We open a temporary stream to store CSV contents
+
+        $stream = fopen('php://temp', 'r+');
+        fwrite($stream, $csvContent);
+        rewind($stream);
+
+        // Skip the header line
+        $headerLine = fgets($stream);
+        $delimiter = ',';
+        if ($headerLine !== false && str_contains($headerLine, ';')) {
+            $delimiter = ';';
+        }
 
         $unemploymentData = [];
         $totalKeywords = ['Total', 'Total TARA', 'TOTAL', 'Total general'];
 
-        foreach ($lines as $line) {
-            if (trim($line) === '') {
+        # Parsing the CSV File
+        while (($row = fgetcsv($stream, 0, $delimiter, '"', '')) !== false) {
+            # Skip empty rows
+            if (empty($row) || $row[0] === null) {
                 continue;
-            }
-
-            $row = str_getcsv($line, ';');
-            if (count($row) < 2) {
-                $row = str_getcsv($line, ',');
             }
 
             // Skip header/total rows or rows without a county name
@@ -104,6 +118,7 @@ class UnemploymentDataFetching
                     $countyName = 'CARAS-SEVERIN';
                 }
 
+                # Serializing data based off the file name
                 switch ($fileName) {
                     case 'rata.csv':
                         if (count($row) < 9) {
@@ -173,6 +188,7 @@ class UnemploymentDataFetching
             }
         }
 
+        fclose($stream);
         return $unemploymentData;
     }
 }
