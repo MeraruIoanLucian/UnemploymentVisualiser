@@ -102,19 +102,7 @@ var MonitorMap = (function () {
      * Elimina diacritice si caractere speciale
      */
     function normalizeCounty(name) {
-        if (!name) return '';
-        var upper = name.toUpperCase();
-        if (upper === 'BUCHAREST' || upper === 'BUCURESTI') {
-            return 'MUN. BUC.';
-        }
-        
-        return upper
-            .replace(/Ă/g, 'A').replace(/Â/g, 'A')
-            .replace(/Î/g, 'I').replace(/Ș/g, 'S').replace(/Ş/g, 'S')
-            .replace(/Ț/g, 'T').replace(/Ţ/g, 'T')
-            .replace(/-/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+        return canonicalizeCounty(name);
     }
 
     /**

@@ -6,6 +6,19 @@
  * - Donut chart (distributie pe educatie/varste/mediu)
  */
 
+function canonicalizeCounty(name) {
+    if (!name) return '';
+    var upper = name.toUpperCase();
+    if (upper.indexOf('BUC') !== -1 || upper === 'BUCHAREST') {
+        return 'BUCURESTI';
+    }
+    return upper
+        .replace(/Ă/g, 'A').replace(/Â/g, 'A')
+        .replace(/Î/g, 'I').replace(/Ș/g, 'S').replace(/Ş/g, 'S')
+        .replace(/Ț/g, 'T').replace(/Ţ/g, 'T')
+        .replace(/[-\s]/g, '');
+}
+
 var MonitorCharts = (function () {
     // Referinte catre instantele Chart.js
     var barChart = null;
@@ -391,7 +404,7 @@ var MonitorCharts = (function () {
             }
         });
 
-        var imgData = canvas.toDataURL('image/jpeg', 0.8);
+        var imgData = canvas.toDataURL('image/png');
         chart.destroy();
         return imgData;
     }

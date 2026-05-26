@@ -200,8 +200,9 @@ function updateStats() {
 
     var filteredData = data;
     if (state.currentCounty !== 'all') {
+        var canonicalTarget = canonicalizeCounty(state.currentCounty);
         filteredData = data.filter(function (d) {
-            return d.county.toUpperCase() === state.currentCounty.toUpperCase();
+            return canonicalizeCounty(d.county) === canonicalTarget;
         });
     }
 
@@ -236,8 +237,9 @@ function updateStats() {
         var compareTotal = 0;
         var compareFiltered = state.compareRataData;
         if (state.currentCounty !== 'all') {
+            var canonicalTarget = canonicalizeCounty(state.currentCounty);
             compareFiltered = state.compareRataData.filter(function (d) {
-                return d.county.toUpperCase() === state.currentCounty.toUpperCase();
+                return canonicalizeCounty(d.county) === canonicalTarget;
             });
         }
         compareFiltered.forEach(function (d) { compareTotal += d.nrUnemployed || 0; });
@@ -282,8 +284,9 @@ function updateDonutChart() {
 function computeBreakdown(data, criterion, county) {
     var filtered = data;
     if (county && county !== 'all') {
+        var canonicalTarget = canonicalizeCounty(county);
         filtered = data.filter(function (d) {
-            return d.county.toUpperCase() === county.toUpperCase();
+            return canonicalizeCounty(d.county) === canonicalTarget;
         });
     }
 
@@ -381,8 +384,9 @@ function updateTable() {
 
     // Filtru de judet
     if (state.currentCounty !== 'all') {
+        var canonicalTarget = canonicalizeCounty(state.currentCounty);
         filtered = filtered.filter(function (d) {
-            return d.county.toUpperCase() === state.currentCounty.toUpperCase();
+            return canonicalizeCounty(d.county) === canonicalTarget;
         });
     }
 
@@ -542,12 +546,13 @@ function renderTableFooter(start, count, total, totalPages) {
  * Selecteaza un judet (din tabel, harta, sau dropdown)
  */
 function selectCounty(countyName) {
-    state.currentCounty = countyName.toUpperCase();
+    var canonical = canonicalizeCounty(countyName);
+    state.currentCounty = (countyName.toLowerCase() === 'all' || countyName.toLowerCase() === '') ? 'all' : canonical;
     if (elements.countySelect) {
         // Cautam optiunea corespunzatoare
         var options = elements.countySelect.options;
         for (var i = 0; i < options.length; i++) {
-            if (options[i].value.toUpperCase() === state.currentCounty) {
+            if (canonicalizeCounty(options[i].value) === canonical) {
                 elements.countySelect.selectedIndex = i;
                 break;
             }
@@ -584,7 +589,8 @@ function setupEventListeners() {
     // Schimbare judet
     if (elements.countySelect) {
         elements.countySelect.addEventListener('change', function () {
-            state.currentCounty = this.value;
+            var canonical = canonicalizeCounty(this.value);
+            state.currentCounty = (this.value === 'all') ? 'all' : canonical;
             state.tablePage = 1;
             updateStats();
             updateDonutChart();
@@ -592,7 +598,7 @@ function setupEventListeners() {
             if (this.value === 'all') {
                 MonitorMap.highlightCounty(null);
             } else {
-                MonitorMap.highlightCounty(this.value);
+                MonitorMap.highlightCounty(state.currentCounty);
             }
         });
     }

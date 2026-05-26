@@ -221,6 +221,17 @@ var MonitorExport = (function () {
                 var countySelect = document.getElementById('county-select');
                 var criterionLabel = CONFIG.CRITERION_TITLE[criterion] || 'Statistici Șomaj';
 
+                var currentCounty = countySelect ? countySelect.value : 'all';
+                var countyLabel = 'Toate Județele';
+                if (currentCounty && currentCounty !== 'all') {
+                    if (countySelect) {
+                        var opt = countySelect.options[countySelect.selectedIndex];
+                        if (opt) countyLabel = opt.text;
+                    } else {
+                        countyLabel = currentCounty;
+                    }
+                }
+
                 // 1. HEADER
                 pdf.setFillColor(12, 51, 90);
                 pdf.rect(0, 0, pageWidth, 40, 'F');
@@ -237,6 +248,7 @@ var MonitorExport = (function () {
                 pdf.setFontSize(11);
                 var headerText = 'Perioada: ' + monthLabel;
                 if (compareData) headerText += ' vs ' + compareMonthLabel;
+                headerText += ' | Județ: ' + countyLabel;
                 pdf.text(headerText, 15, 36);
 
                 var y = 50;
@@ -251,12 +263,12 @@ var MonitorExport = (function () {
                     y += 5;
 
                     var barCanvas = barChart.canvas;
-                    var barImgData = barCanvas.toDataURL('image/jpeg', 0.8);
+                    var barImgData = barCanvas.toDataURL('image/png');
                     var barWidth = pageWidth - 30;
                     var barHeight = (barCanvas.height * barWidth) / barCanvas.width;
                     if (barHeight > 85) barHeight = 85;
 
-                    pdf.addImage(barImgData, 'JPEG', 15, y, barWidth, barHeight);
+                    pdf.addImage(barImgData, 'PNG', 15, y, barWidth, barHeight);
                     y += barHeight + 15;
                 }
 
@@ -266,16 +278,14 @@ var MonitorExport = (function () {
                     pdf.setFont(mainFont, 'bold');
                     pdf.text('Distribuție Comparație', 15, y);
                     y += 7;
-
-                    var currentCounty = countySelect ? countySelect.value : 'all';
                     
                     // Donut 1 (Luna curenta)
                     var donut1 = generateDonutImage(data, criterion, currentCounty);
-                    pdf.addImage(donut1.imgData, 'JPEG', 15, y, 50, 50);
+                    pdf.addImage(donut1.imgData, 'PNG', 15, y, 50, 50);
                     
                     // Donut 2 (Luna comparativa)
                     var donut2 = generateDonutImage(compareData, criterion, currentCounty);
-                    pdf.addImage(donut2.imgData, 'JPEG', pageWidth - 15 - 50, y, 50, 50);
+                    pdf.addImage(donut2.imgData, 'PNG', pageWidth - 15 - 50, y, 50, 50);
 
                     // Legendă partajată în mijloc
                     pdf.setFontSize(8);
@@ -305,37 +315,40 @@ var MonitorExport = (function () {
                     y += 65;
                 } else {
                     // Un singur ring chart
-                    var donutChart = MonitorCharts.getDonutChart();
-                    if (donutChart && donutChart.canvas) {
-                        pdf.setFontSize(14);
-                        pdf.setFont(mainFont, 'bold');
-                        pdf.text(CONFIG.DONUT_TITLE[criterion] || 'Distribuție', 15, y);
-                        y += 5;
+                    var donut = generateDonutImage(data, criterion, currentCounty);
+                    pdf.setFontSize(14);
+                    pdf.setFont(mainFont, 'bold');
+                    pdf.text(CONFIG.DONUT_TITLE[criterion] || 'Distribuție', 15, y);
+                    y += 5;
 
-                        var donutCanvas = donutChart.canvas;
-                        var donutImgData = donutCanvas.toDataURL('image/jpeg', 0.8);
-                        pdf.addImage(donutImgData, 'JPEG', 15, y, 55, 55);
-                        
-                        var currentCounty = countySelect ? countySelect.value : 'all';
-                        var breakdown = computeBreakdown(data, criterion, currentCounty);
-                        var totalCount = breakdown.values.reduce(function(a, b) { return a + b; }, 0);
-                        
-                        pdf.setFontSize(9);
-                        pdf.setFont(mainFont, 'normal');
-                        pdf.setTextColor(60, 60, 60);
-                        breakdown.labels.forEach(function(label, i) {
-                            if (i < 8) {
-                                var pct = totalCount > 0 ? Math.round((breakdown.values[i] / totalCount) * 100) : 0;
-                                pdf.text('• ' + label + ': ' + pct + '%', 15 + 65, y + 10 + (i * 6));
-                            }
-                        });
-                        y += 65;
-                    }
+                    pdf.addImage(donut.imgData, 'PNG', 15, y, 55, 55);
+                    
+                    var totalCount = donut.breakdown.values.reduce(function(a, b) { return a + b; }, 0);
+                    
+                    pdf.setFontSize(9);
+                    pdf.setFont(mainFont, 'normal');
+                    pdf.setTextColor(60, 60, 60);
+                    donut.breakdown.labels.forEach(function(label, i) {
+                        if (i < 8) {
+                            var pct = totalCount > 0 ? Math.round((donut.breakdown.values[i] / totalCount) * 100) : 0;
+                            pdf.text('• ' + label + ': ' + pct + '%', 15 + 65, y + 10 + (i * 6));
+                        }
+                    });
+                    y += 65;
                 }
 
-                // 4. TABEL(E) COMPLETE
+                // 4. TABEL(E) DETALIATE (afișează doar județul selectat dacă este cazul)
                 var columns = CONFIG.TABLE_COLUMNS[criterion] || [];
                 var tableHeaders = [columns.map(function(col) { return col.label; })];
+
+                // Filtrare pentru Tabelul 1 (Luna curentă)
+                var filteredData1 = data;
+                if (currentCounty && currentCounty !== 'all') {
+                    var canonicalTarget = canonicalizeCounty(currentCounty);
+                    filteredData1 = data.filter(function(row) {
+                        return canonicalizeCounty(row.county) === canonicalTarget;
+                    });
+                }
 
                 // Tabel 1: Luna Curenta
                 pdf.addPage();
@@ -344,7 +357,7 @@ var MonitorExport = (function () {
                 pdf.setFont(mainFont, 'bold');
                 pdf.text('Date Detaliate: ' + monthLabel, 15, 20);
 
-                var tableData1 = data.map(function(row) {
+                var tableData1 = filteredData1.map(function(row) {
                     return columns.map(function(col) {
                         var val = row[col.key];
                         if (col.format === 'number') return (val || 0).toLocaleString('ro-RO');
@@ -377,7 +390,16 @@ var MonitorExport = (function () {
                     pdf.setFont(mainFont, 'bold');
                     pdf.text('Date Detaliate: ' + compareMonthLabel, 15, 20);
 
-                    var tableData2 = compareData.map(function(row) {
+                    // Filtrare pentru Tabelul 2 (Luna comparativă)
+                    var filteredData2 = compareData;
+                    if (currentCounty && currentCounty !== 'all') {
+                        var canonicalTarget = canonicalizeCounty(currentCounty);
+                        filteredData2 = compareData.filter(function(row) {
+                            return canonicalizeCounty(row.county) === canonicalTarget;
+                        });
+                    }
+
+                    var tableData2 = filteredData2.map(function(row) {
                         return columns.map(function(col) {
                             var val = row[col.key];
                             if (col.format === 'number') return (val || 0).toLocaleString('ro-RO');
