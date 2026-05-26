@@ -16,8 +16,6 @@ var MonitorCharts = (function () {
         primary: '#0053db',
         primaryLight: '#618bff',
         primaryContainer: '#dbe1ff',
-        secondary: '#40618a',
-        surface: '#e6eeff',
         error: '#9f403d',
         // Paleta pentru donut/stacked charts
         palette: [
@@ -362,13 +360,6 @@ var MonitorCharts = (function () {
         return donutChart;
     }
 
-    /**
-     * Distruge toate graficele
-     */
-    function destroyAll() {
-        if (barChart) { barChart.destroy(); barChart = null; }
-        if (donutChart) { donutChart.destroy(); donutChart = null; }
-    }
 
     // Public API
     return {
@@ -376,7 +367,6 @@ var MonitorCharts = (function () {
         renderDonutChart: renderDonutChart,
         getBarChart: getBarChart,
         getDonutChart: getDonutChart,
-        destroyAll: destroyAll,
         COLORS: COLORS
     };
 })();

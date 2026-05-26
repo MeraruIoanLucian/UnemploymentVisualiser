@@ -864,9 +864,8 @@ a:hover {
     flex-direction: column;
 }
 
-.flex-1 {
-    flex: 1;
-}
+
+
 
 /* --- Leaflet overrides (sa se potriveasca cu designul) --- */
 .leaflet-container {

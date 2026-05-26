@@ -207,13 +207,11 @@ function updateStats() {
 
     // Calculam totaluri
     var totalUnemployed = 0;
-    var totalCompensated = 0;
     var totalNonCompensated = 0;
     var rateSum = 0;
 
     filteredData.forEach(function (d) {
         totalUnemployed += d.nrUnemployed || 0;
-        totalCompensated += d.nrCompensatedUnemployed || 0;
         totalNonCompensated += d.nrNonCompensatedUnemployed || 0;
         rateSum += d.unemploymentRate || 0;
     });

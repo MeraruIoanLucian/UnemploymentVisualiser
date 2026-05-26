@@ -240,18 +240,11 @@ var MonitorMap = (function () {
         });
     }
 
-    /**
-     * Returneaza referinta la harta Leaflet (pentru export)
-     */
-    function getMap() {
-        return map;
-    }
 
     // Public API
     return {
         init: init,
         updateColors: updateColors,
-        highlightCounty: highlightCounty,
-        getMap: getMap
+        highlightCounty: highlightCounty
     };
 })();
