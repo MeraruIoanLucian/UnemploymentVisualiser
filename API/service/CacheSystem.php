@@ -1,10 +1,27 @@
 <?php
 
+/**
+ * Class CacheSystem
+ *
+ * Implements a simple file-based caching mechanism to store API responses locally,
+ * avoiding redundant external requests to data.gov.ro.
+ */
 class CacheSystem
 {
+    /**
+     * @var string Directory path where cache files are stored.
+     */
     private const string CACHE_DIR = __DIR__ . '/../cache';
-    private const int CACHE_LIFETIME = 7 * 24 * 60 * 60; // 7 days in seconds
 
+    /**
+     * @var int Default Cache lifetime in seconds (7 days).
+     */
+    private const int CACHE_LIFETIME = 7 * 24 * 60 * 60;
+
+    /**
+     * CacheSystem constructor.
+     * Initializes the cache directory if it does not exist.
+     */
     public function __construct()
     {
         if (!is_dir(self::CACHE_DIR)) {
@@ -32,7 +49,12 @@ class CacheSystem
         }
     }
 
-
+    /**
+     * Retrieve data from a cache file.
+     *
+     * @param string $name Name of the cache file.
+     * @return string|null The content of the cache file, or null if it doesn't exist.
+     */
     public function get(string $name): ?string
     {
         $cacheFile = self::CACHE_DIR . '/' . $name;
@@ -42,6 +64,13 @@ class CacheSystem
         return null;
     }
     
+    /**
+     * Store data into a cache file.
+     *
+     * @param string $name Name of the cache file.
+     * @param string $content Content to be written to the cache file.
+     * @return void
+     */
     public function put(string $name, string $content): void
     {
         $cacheFile = self::CACHE_DIR . '/' . $name;

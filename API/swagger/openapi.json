@@ -1,0 +1,348 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Unemployment Visualiser API",
+    "description": "API for fetching and analyzing unemployment statistics across counties in Romania. Leverages data from data.gov.ro.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local API server"
+    },
+    {
+      "url": "/",
+      "description": "Relative URL path"
+    }
+  ],
+  "paths": {
+    "/api/{package}/{file}": {
+      "get": {
+        "summary": "Fetch parsed unemployment data",
+        "description": "Retrieves general or category-specific unemployment data for all Romanian counties from data.gov.ro, caching it locally for 7 days.",
+        "parameters": [
+          {
+            "name": "package",
+            "in": "path",
+            "required": true,
+            "description": "The monthly dataset identifier",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mai2025",
+                "aprilie2025",
+                "martie2025",
+                "februarie2025",
+                "ianuarie2025",
+                "decembrie2024",
+                "iulie2024",
+                "iunie2024",
+                "mai2024",
+                "aprilie2024",
+                "martie2024",
+                "februarie2024",
+                "octombrie2023",
+                "august2023",
+                "iunie2023",
+                "noiembrie2023",
+                "iulie2023",
+                "februarie2023"
+              ]
+            }
+          },
+          {
+            "name": "file",
+            "in": "path",
+            "required": true,
+            "description": "The specific csv dataset type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rata.csv",
+                "medii.csv",
+                "varste.csv",
+                "nivel-educatie.csv"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/UnemploymentDataBasic"
+                      },
+                      {
+                        "$ref": "#/components/schemas/UnemploymentDataPerMedium"
+                      },
+                      {
+                        "$ref": "#/components/schemas/UnemploymentDataPerAgeRange"
+                      },
+                      {
+                        "$ref": "#/components/schemas/UnemploymentDataPerEducationLevel"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing package name or filename",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - File or package configuration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - JSON parsing error or empty fetched content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway - Failed to fetch data from remote source (data.gov.ro)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UnemploymentDataBasic": {
+        "type": "object",
+        "description": "General unemployment rate and counts, parsed from 'rata.csv'",
+        "properties": {
+          "county": {
+            "type": "string",
+            "description": "Name of the county (județ) in Romania"
+          },
+          "nrUnemployed": {
+            "type": "integer",
+            "description": "Total number of unemployed people"
+          },
+          "nrFemaleUnemployed": {
+            "type": "integer",
+            "description": "Total number of female unemployed people"
+          },
+          "nrMaleUnemployed": {
+            "type": "integer",
+            "description": "Total number of male unemployed people"
+          },
+          "nrCompensatedUnemployed": {
+            "type": "integer",
+            "description": "Number of unemployed receiving benefit/compensation"
+          },
+          "nrNonCompensatedUnemployed": {
+            "type": "integer",
+            "description": "Number of unemployed not receiving compensation"
+          },
+          "unemploymentRate": {
+            "type": "number",
+            "format": "float",
+            "description": "Overall unemployment rate (percentage)"
+          },
+          "femaleUnemploymentRate": {
+            "type": "number",
+            "format": "float",
+            "description": "Female unemployment rate (percentage)"
+          },
+          "maleUnemploymentRate": {
+            "type": "number",
+            "format": "float",
+            "description": "Male unemployment rate (percentage)"
+          }
+        },
+        "required": [
+          "county",
+          "nrUnemployed",
+          "nrFemaleUnemployed",
+          "nrMaleUnemployed",
+          "nrCompensatedUnemployed",
+          "nrNonCompensatedUnemployed",
+          "unemploymentRate",
+          "femaleUnemploymentRate",
+          "maleUnemploymentRate"
+        ]
+      },
+      "UnemploymentDataPerMedium": {
+        "type": "object",
+        "description": "Unemployment distribution by medium (Urban vs. Rural), parsed from 'medii.csv'",
+        "properties": {
+          "county": {
+            "type": "string",
+            "description": "Name of the county (județ) in Romania"
+          },
+          "totalUnemployed": {
+            "type": "integer"
+          },
+          "totalFemaleUnemployed": {
+            "type": "integer"
+          },
+          "totalMaleUnemployed": {
+            "type": "integer"
+          },
+          "totalUnemployedUrban": {
+            "type": "integer"
+          },
+          "totalFemaleUnemployedUrban": {
+            "type": "integer"
+          },
+          "totalMaleUnemployedUrban": {
+            "type": "integer"
+          },
+          "totalUnemployedRural": {
+            "type": "integer"
+          },
+          "totalFemaleUnemployedRural": {
+            "type": "integer"
+          },
+          "totalMaleUnemployedRural": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "county",
+          "totalUnemployed",
+          "totalFemaleUnemployed",
+          "totalMaleUnemployed",
+          "totalUnemployedUrban",
+          "totalFemaleUnemployedUrban",
+          "totalMaleUnemployedUrban",
+          "totalUnemployedRural",
+          "totalFemaleUnemployedRural",
+          "totalMaleUnemployedRural"
+        ]
+      },
+      "UnemploymentDataPerAgeRange": {
+        "type": "object",
+        "description": "Unemployment distribution by age range, parsed from 'varste.csv'",
+        "properties": {
+          "county": {
+            "type": "string",
+            "description": "Name of the county (județ) in Romania"
+          },
+          "under25": {
+            "type": "integer"
+          },
+          "from25to29": {
+            "type": "integer"
+          },
+          "from30to39": {
+            "type": "integer"
+          },
+          "from40to49": {
+            "type": "integer"
+          },
+          "from50to59": {
+            "type": "integer"
+          },
+          "over50": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "county",
+          "under25",
+          "from25to29",
+          "from30to39",
+          "from40to49",
+          "from50to59",
+          "over50"
+        ]
+      },
+      "UnemploymentDataPerEducationLevel": {
+        "type": "object",
+        "description": "Unemployment distribution by education level, parsed from 'nivel-educatie.csv'",
+        "properties": {
+          "county": {
+            "type": "string",
+            "description": "Name of the county (județ) in Romania"
+          },
+          "noStudy": {
+            "type": "integer"
+          },
+          "primaryStudy": {
+            "type": "integer"
+          },
+          "middleStudy": {
+            "type": "integer"
+          },
+          "highStudy": {
+            "type": "integer"
+          },
+          "postHighStudy": {
+            "type": "integer"
+          },
+          "professionalStudy": {
+            "type": "integer"
+          },
+          "universityStudy": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "county",
+          "noStudy",
+          "primaryStudy",
+          "middleStudy",
+          "highStudy",
+          "postHighStudy",
+          "professionalStudy",
+          "universityStudy"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "File not found"
+          },
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "status": {
+            "type": "integer",
+            "example": 404
+          },
+          "msg": {
+            "type": "string",
+            "example": "Resource 'rata.csv' for package 'invalidPackage' not found in configuration."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,19 @@
 <?php
+/**
+ * Entry point (Router / Front Controller) for the Unemployment Visualiser API.
+ *
+ * This script intercepts incoming HTTP requests, sets CORS and JSON headers,
+ * invokes cache cleaning, reads the configuration file (`data-dest.json`),
+ * dispatches the requested action (currently supports GET for specific CSV data files),
+ * and handles any routing/runtime errors gracefully.
+ *
+ * API Schema:
+ *   - GET /api/{package_name}/{filename}
+ *     - allowed files: rata.csv, medii.csv, varste.csv, nivel-educatie.csv
+ *
+ * Example:
+ *   - GET /api/mai2025/rata.csv
+ */
 
 // Importing necessary files
 require_once __DIR__ . "/service/UnemploymentDataFetching.php";

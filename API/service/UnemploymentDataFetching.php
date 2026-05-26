@@ -12,18 +12,47 @@ use models\UnemploymentDataPerMedium;
 use models\UnemploymentDataPerAgeRange;
 use models\UnemploymentDataPerEducationLevel;
 
+/**
+ * Class UnemploymentDataFetching
+ *
+ * Coordinated data orchestrator responsible for checking local caches, fetching CSV files from
+ * data.gov.ro via FileParser, sanitizing input data (correcting encoding issues like "Caraș-Severin"),
+ * and parsing CSV structures into typed Data Transfer Objects (DTOs).
+ */
 class UnemploymentDataFetching
 {
+    /**
+     * @var array Configuration mapping packages to their package_id and contents (resource IDs).
+     */
     private array $config;
+
+    /**
+     * @var CacheSystem Instance of CacheSystem for handling local caching.
+     */
     private CacheSystem $cacheSystem;
+
+    /**
+     * @var string Base URL for downloading datasets from data.gov.ro.
+     */
     private const string DATA_GOV_BASE_URL = 'https://data.gov.ro/dataset/';
 
+    /**
+     * UnemploymentDataFetching constructor.
+     *
+     * @param array $config Configuration mapping packages to metadata and file resource IDs.
+     */
     public function __construct(array $config)
     {
         $this->config = $config;
         $this->cacheSystem = new CacheSystem();
     }
-    # Private method to get the package ID and resource ID
+    /**
+     * Retrieve the dataset package ID and specific resource ID from the configuration.
+     *
+     * @param string $packageName The name of the month/package (e.g. 'mai2025').
+     * @param string $fileName The name of the file being fetched (e.g. 'rata.csv').
+     * @return array{package_id: string, resource_id: string}|null Array containing package_id and resource_id, or null if not found.
+     */
     private function getResourceInfo(string $packageName, string $fileName): ?array
     {
         if (!isset($this->config[$packageName])) {
@@ -42,12 +71,16 @@ class UnemploymentDataFetching
     }
 
     /**
-     * Fetches and parses unemployment data from a remote CSV file based on the file name.
+     * Fetches, caches, parses, and sanitizes unemployment data from data.gov.ro.
      *
-     * @param string $packageName
-     * @param string $fileName
-     * @return array
-     * @throws Exception
+     * First checks if a cached copy exists. If not, it requests the CSV file from data.gov.ro,
+     * writes it to cache, parses it using fgetcsv (auto-detecting ',' or ';' delimiters),
+     * and maps each row into the corresponding model object.
+     *
+     * @param string $packageName The package (month/year) to fetch (e.g., 'mai2025').
+     * @param string $fileName The file identifier (e.g., 'rata.csv', 'medii.csv', 'varste.csv', 'nivel-educatie.csv').
+     * @return array<UnemploymentDataBasic|UnemploymentDataPerMedium|UnemploymentDataPerAgeRange|UnemploymentDataPerEducationLevel> List of parsed models.
+     * @throws Exception If the resource is not configured (404), fails to fetch (502), or data content is empty (500).
      */
     public function getUnemploymentData(string $packageName, string $fileName): array
     {

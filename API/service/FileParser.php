@@ -1,8 +1,20 @@
 <?php
 
+/**
+ * Class FileParser
+ *
+ * Provides utility methods to handle network operations, specifically fetching
+ * remote resource content via cURL.
+ */
 class FileParser
 {
-    public static function fetchUrl($url): bool|string
+    /**
+     * Fetch the content of a remote URL using cURL.
+     *
+     * @param mixed $url The URL to fetch. Must be a valid URL string.
+     * @return string|bool The downloaded content as a string, or false on failure.
+     */
+    public static function fetchUrl(mixed $url): bool|string
     {
         if (empty($url) || !is_string($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
             error_log("Invalid or empty URL provided to FileParser::fetchUrl: " . var_export($url, true));

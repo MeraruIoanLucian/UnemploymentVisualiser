@@ -35,6 +35,40 @@
 Acest proiect presupune dezvoltarea unei aplicații web ce afișează datele despre șomajul în România prin anumite criterii (Rata de Șomaj, Mediul de proveniență, Vârstă, Nivel de Educație, etc.) și o anumită dată. Datele sunt preluate din \textbf{data.gov.ro} și aplicația are posibilitatea de a compara datele dintr-o anumită perioadă cu alta. Aplicația permite exportul de date prin CSV și PDF plus exportul grafurilor în SVG. De asemenea, aplicația dispune și de un sistem de caching pentru îmbunătățirea preluării datelor.
 
 \section{Use Case Scenario}
+
+\subsection{Use Case Diagram}
+\begin{center}
+\begin{tikzpicture}[
+    actor/.style={circle, draw, fill=blue!10, minimum size=1.2cm, font=\small\sffamily, align=center},
+    usecase/.style={rectangle, draw, rounded corners=12pt, fill=green!10, text width=3.5cm, align=center, minimum height=1cm, font=\footnotesize\sffamily},
+    system/.style={rectangle, draw, fill=gray!5, minimum width=8.5cm, minimum height=8.2cm, label={[shift={(0,-0.6)}]above:Sistem (Unemployment Visualiser)}}
+]
+    % Draw System Boundary
+    \node[system] (sys) at (3.5, -2.0) {};
+
+    % Actors
+    \node[actor] (user) at (-1.8, -2.0) {Utilizator\\Final};
+    \node[actor] (api) at (8.8, -2.0) {data.gov.ro\\(External)};
+
+    % Use Cases
+    \node[usecase] (uc1) at (3.5, 1.2) {Vizualizează date șomaj};
+    \node[usecase] (uc2) at (3.5, -0.2) {Filtrează statistici (lună, județ)};
+    \node[usecase] (uc3) at (3.5, -1.6) {Compară două perioade};
+    \node[usecase] (uc4) at (3.5, -3.0) {Exportă date (CSV, PDF, etc.)};
+    \node[usecase] (uc5) at (3.5, -4.4) {Preluare date externe};
+
+    % Connections
+    \draw (user) -- (uc1);
+    \draw (user) -- (uc2);
+    \draw (user) -- (uc3);
+    \draw (user) -- (uc4);
+    \draw (uc5) -- (api);
+    
+    % Include relation
+    \draw[->, dashed] (uc1) -- node[right, font=\tiny] {<<include>>} (uc5);
+\end{tikzpicture}
+\end{center}
+
 \subsection{Fluxul Principal}
 Utilizatorul accesează platforma pentru a analiza evoluția șomajului. Poate filtra datele după lună, județ sau criteriu (vârstă, educație, mediu). Sistemul permite compararea a două perioade diferite pentru a observa tendințele economice.
 
@@ -103,14 +137,13 @@ Utilizatorul accesează platforma pentru a analiza evoluția șomajului. Poate f
     \node[class] (fetching) {
         \textbf{UnemploymentDataFetching}\\
         - config: array\\
-        - cache: CacheSystem\\
+        - cacheSystem: CacheSystem\\
         + getUnemploymentData(pkg, file): array\\
         - getResourceInfo(pkg, file): ?array
     };
     \node[class, below=1.5cm of fetching] (parser) {
         \textbf{FileParser}\\
-        + fetchUrl(url): bool|string\\
-        + parseCsv(content): array
+        + fetchUrl(url): bool|string
     };
     \draw[->, dashed] (fetching) -- (parser);
 \end{tikzpicture}
@@ -159,19 +192,15 @@ Sistemul Backend oferă o interfață RESTful pentru consumul datelor statistice
     \item \textbf{Răspuns}: JSON Array conținând obiectele DTO corespunzătoare setului cerut.
 \end{itemize}
 
-\subsubsection{Endpoint: List Cache}
+\subsubsection{Endpoint: Interactive Documentation (Swagger UI)}
 \begin{itemize}
-    \item \textbf{Metodă}: \texttt{GET}
-    \item \textbf{URL}: \texttt{/api/cache}
-    \item \textbf{Răspuns}: Listă de obiecte \texttt{CsvCacheEntry} cu detalii despre mărime și data creării.
+    \item \textbf{URL}: \texttt{/swagger/index.html}
+    \item \textbf{Descriere}: Pagina statică ce expune documentația interactivă a API-ului. Încarcă biblioteca Swagger UI prin CDN și citește fișierul de specificație OpenAPI 3.0 din \texttt{/swagger/openapi.json}.
+    \item \textbf{Funcționalitate}: Permite vizualizarea completă a endpoint-urilor, schemelor de date (DTOs) și executarea de cereri direct din browser utilizând butonul „Try it out”.
 \end{itemize}
 
-\subsubsection{Endpoint: Delete Cache}
-\begin{itemize}
-    \item \textbf{Metodă}: \texttt{DELETE}
-    \item \textbf{URL}: \texttt{/api/cache} (Toate fișierele) sau \texttt{/api/cache/\{filename\}} (Un singur fișier).
-    \item \textbf{Răspuns}: \texttt{\{"success": true, "msg": "..."\}}
-\end{itemize}
+\subsubsection{Gestionarea Internă a Caching-ului}
+API-ul implementează un sistem de cache automat pe fișiere (în directorul \texttt{cache/}) cu un timp de expirare (TTL) de 7 zile. Nu există endpoint-uri administrative publice expuse pentru cache; în schimb, sistemul se curăță singur automat la fiecare cerere primită prin intermediul metodei \texttt{CacheSystem::cleanExpired()} apelată în controller-ul principal (\texttt{index.php}).
 
 \subsection{DTOs Structure (Models)}
 Toate modelele folosesc proprietăți publice pentru o conversie facilă în JSON.
@@ -186,6 +215,8 @@ Mapat pe \texttt{rata.csv}.
     \item \texttt{int \$nrCompensatedUnemployed}: Șomeri indemnizați.
     \item \texttt{int \$nrNonCompensatedUnemployed}: Șomeri neindemnizați.
     \item \texttt{float \$unemploymentRate}: Rata șomajului (\%).
+    \item \texttt{float \$femaleUnemploymentRate}: Rata șomajului în rândul femeilor (\%).
+    \item \texttt{float \$maleUnemploymentRate}: Rata șomajului în rândul bărbaților (\%).
 \end{itemize}
 
 \subsubsection{UnemploymentDataPerAgeRange}
@@ -205,7 +236,16 @@ Mapat pe \texttt{nivel-educatie.csv}.
 \subsubsection{UnemploymentDataPerMedium}
 Mapat pe \texttt{medii.csv}.
 \begin{itemize}
-    \item \texttt{int \$totalUnemployedUrban}, \texttt{\$totalUnemployedRural}: Distribuție Urban vs Rural.
+    \item \texttt{string \$county}: Județ.
+    \item \texttt{int \$totalUnemployed}: Total șomeri.
+    \item \texttt{int \$totalFemaleUnemployed}: Femei șomere (total).
+    \item \texttt{int \$totalMaleUnemployed}: Bărbați șomeri (total).
+    \item \texttt{int \$totalUnemployedUrban}: Șomeri din mediu urban.
+    \item \texttt{int \$totalFemaleUnemployedUrban}: Femei șomere din mediu urban.
+    \item \texttt{int \$totalMaleUnemployedUrban}: Bărbați șomeri din mediu urban.
+    \item \texttt{int \$totalUnemployedRural}: Șomeri din mediu rural.
+    \item \texttt{int \$totalFemaleUnemployedRural}: Femei șomere din mediu rural.
+    \item \texttt{int \$totalMaleUnemployedRural}: Bărbați șomeri din mediu rural.
 \end{itemize}
 
 \subsection{Caching and Transformation Strategy}
