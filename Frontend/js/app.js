@@ -281,7 +281,7 @@ function updateDonutChart() {
 // imparte datele pt donut
 function computeBreakdown(data, criterion, county) {
     var filtered = data;
-    if (county !== 'all') {
+    if (county && county !== 'all') {
         filtered = data.filter(function (d) {
             return d.county.toUpperCase() === county.toUpperCase();
         });

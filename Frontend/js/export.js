@@ -219,7 +219,6 @@ var MonitorExport = (function () {
                 var monthLabel = getMonthLabel(month);
                 var compareMonthLabel = compareData ? getMonthLabel(compareMonth) : null;
                 var countySelect = document.getElementById('county-select');
-                var countyLabel = countySelect && countySelect.selectedIndex !== -1 ? countySelect.options[countySelect.selectedIndex].text : 'Toate Județele';
                 var criterionLabel = CONFIG.CRITERION_TITLE[criterion] || 'Statistici Șomaj';
 
                 // 1. HEADER
@@ -238,7 +237,6 @@ var MonitorExport = (function () {
                 pdf.setFontSize(11);
                 var headerText = 'Perioada: ' + monthLabel;
                 if (compareData) headerText += ' vs ' + compareMonthLabel;
-                headerText += '  |  Județ: ' + countyLabel;
                 pdf.text(headerText, 15, 36);
 
                 var y = 50;
@@ -425,109 +423,15 @@ var MonitorExport = (function () {
                 if (btn) btn.textContent = originalText;
             }
         }
+    }
 
     /**
      * Helper pentru a genera o imagine a unui grafic donut pentru PDF folosind un canvas off-screen
      */
     function generateDonutImage(data, criterion, county) {
         var breakdown = computeBreakdown(data, criterion, county);
-        var canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 400;
-        
-        // Cream un chart temporar
-        var chart = new Chart(canvas, {
-            type: 'doughnut',
-            data: {
-                labels: breakdown.labels,
-                datasets: [{
-                    data: breakdown.values,
-                    backgroundColor: breakdown.labels.map(function (_, i) {
-                        return MonitorCharts.COLORS.palette[i % MonitorCharts.COLORS.palette.length];
-                    }),
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: false,
-                animation: false,
-                cutout: '65%',
-                plugins: { 
-                    legend: { display: false } 
-                }
-            }
-        });
-
-        var imgData = canvas.toDataURL('image/jpeg', 0.8);
-        chart.destroy();
+        var imgData = MonitorCharts.generateDonutImage(breakdown);
         return { imgData: imgData, breakdown: breakdown };
-    }
-
-    /**
-     * Functie helper pentru a recalcula distributia (copiata din app.js sau facuta accesibila)
-     * In mod normal ar trebui sa fie intr-un modul de date comun.
-     */
-    function computeBreakdown(data, criterion, county) {
-        var filtered = data;
-        if (county && county !== 'all') {
-            filtered = data.filter(function (d) {
-                return d.county.toUpperCase() === county.toUpperCase();
-            });
-        }
-
-        var labels, values;
-        switch (criterion) {
-            case 'rata':
-                var totalFemale = 0, totalMale = 0;
-                filtered.forEach(function (d) {
-                    totalFemale += d.nrFemaleUnemployed || 0;
-                    totalMale += d.nrMaleUnemployed || 0;
-                });
-                labels = ['Femei', 'Bărbați'];
-                values = [totalFemale, totalMale];
-                break;
-            case 'educatie':
-                var sums = { noStudy: 0, primaryStudy: 0, middleStudy: 0, highStudy: 0, postHighStudy: 0, professionalStudy: 0, universityStudy: 0 };
-                filtered.forEach(function (d) {
-                    sums.noStudy += d.noStudy || 0;
-                    sums.primaryStudy += d.primaryStudy || 0;
-                    sums.middleStudy += d.middleStudy || 0;
-                    sums.highStudy += d.highStudy || 0;
-                    sums.postHighStudy += d.postHighStudy || 0;
-                    sums.professionalStudy += d.professionalStudy || 0;
-                    sums.universityStudy += d.universityStudy || 0;
-                });
-                labels = ['Fără studii', 'Primar', 'Gimnazial', 'Liceal', 'Postliceal', 'Profesional', 'Universitar'];
-                values = [sums.noStudy, sums.primaryStudy, sums.middleStudy, sums.highStudy, sums.postHighStudy, sums.professionalStudy, sums.universityStudy];
-                break;
-            case 'varste':
-                var ageSums = { under25: 0, from25to29: 0, from30to39: 0, from40to49: 0, from50to59: 0, over50: 0 };
-                filtered.forEach(function (d) {
-                    ageSums.under25 += d.under25 || 0;
-                    ageSums.from25to29 += d.from25to29 || 0;
-                    ageSums.from30to39 += d.from30to39 || 0;
-                    ageSums.from40to49 += d.from40to49 || 0;
-                    ageSums.from50to59 += d.from50to59 || 0;
-                    ageSums.over50 += d.over50 || 0;
-                });
-                labels = ['Sub 25', '25-29', '30-39', '40-49', '50-59', 'Peste 50'];
-                values = [ageSums.under25, ageSums.from25to29, ageSums.from30to39, ageSums.from40to49, ageSums.from50to59, ageSums.over50];
-                break;
-            case 'medii':
-                var urbanTotal = 0, ruralTotal = 0;
-                filtered.forEach(function (d) {
-                    urbanTotal += d.totalUnemployedUrban || 0;
-                    ruralTotal += d.totalUnemployedRural || 0;
-                });
-                labels = ['Urban', 'Rural'];
-                values = [urbanTotal, ruralTotal];
-                break;
-            default:
-                labels = [];
-                values = [];
-        }
-        return { labels: labels, values: values };
     }
 
     // export SQL - creare tabel + insert linie cu linie

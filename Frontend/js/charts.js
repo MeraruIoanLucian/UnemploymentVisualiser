@@ -360,6 +360,42 @@ var MonitorCharts = (function () {
         return donutChart;
     }
 
+    /**
+     * Helper pentru a genera o imagine a unui grafic donut folosind un canvas off-screen
+     */
+    function generateDonutImage(breakdown) {
+        var canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 400;
+        
+        var chart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: breakdown.labels,
+                datasets: [{
+                    data: breakdown.values,
+                    backgroundColor: breakdown.labels.map(function (_, i) {
+                        return COLORS.palette[i % COLORS.palette.length];
+                    }),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: false,
+                animation: false,
+                cutout: '65%',
+                plugins: { 
+                    legend: { display: false } 
+                }
+            }
+        });
+
+        var imgData = canvas.toDataURL('image/jpeg', 0.8);
+        chart.destroy();
+        return imgData;
+    }
+
 
     // Public API
     return {
@@ -367,6 +403,7 @@ var MonitorCharts = (function () {
         renderDonutChart: renderDonutChart,
         getBarChart: getBarChart,
         getDonutChart: getDonutChart,
+        generateDonutImage: generateDonutImage,
         COLORS: COLORS
     };
 })();
