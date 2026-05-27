@@ -29,7 +29,7 @@
 
 \maketitle
 \tableofcontents
-
+\newpage 
 
 \section{Problem Definition}
 Acest proiect presupune dezvoltarea unei aplicații web ce afișează datele despre șomajul în România prin anumite criterii (Rata de Șomaj, Mediul de proveniență, Vârstă, Nivel de Educație, etc.) și o anumită dată. Datele sunt preluate din \textbf{data.gov.ro} și aplicația are posibilitatea de a compara datele dintr-o anumită perioadă cu alta. Aplicația permite exportul de date prin CSV și PDF plus exportul grafurilor în SVG. De asemenea, aplicația dispune și de un sistem de caching pentru îmbunătățirea preluării datelor.
@@ -65,7 +65,7 @@ Acest proiect presupune dezvoltarea unei aplicații web ce afișează datele des
     \draw (uc5) -- (api);
     
     % Include relation
-    \draw[->, dashed] (uc1) -- node[right, font=\tiny] {<<include>>} (uc5);
+    \draw[->, dashed] (uc1) to [bend left=70] node[right, font=\tiny] {<<include>>} (uc5);
 \end{tikzpicture}
 \end{center}
 
@@ -84,16 +84,15 @@ Utilizatorul accesează platforma pentru a analiza evoluția șomajului. Poate f
 \subsection{Level 1: System Context Diagram}
 \begin{center}
 \begin{tikzpicture}[node distance=2cm, auto]
-    \node[rectangle, draw, fill=blue!20, text width=3cm, align=center, minimum height=1.5cm] (user) {Utilizator Final};
-    \node[rectangle, draw, fill=blue!40, text width=4cm, align=center, minimum height=2cm, right=3cm of user] (system) {Unemployment Data Visualizer System};
-    \node[rectangle, draw, fill=gray!20, text width=3cm, align=center, minimum height=1.5cm, right=3cm of system] (datagov) {data.gov.ro (External API)};
+    \node[rectangle, draw, fill=blue!20, text width=2.5cm, align=center, minimum height=1.5cm] (user) {Utilizator Final};
+    \node[rectangle, draw, fill=blue!40, text width=3.5cm, align=center, minimum height=2cm, right=3cm of user] (system) {Unemployment Data Visualizer System};
+    \node[rectangle, draw, fill=gray!20, text width=2.5cm, align=center, minimum height=1.5cm, right=3cm of system] (datagov) {data.gov.ro (External API)};
 
-    \draw[->, thick] (user) -- node[above] {Vizualizează date} (system);
-    \draw[->, thick] (system) -- node[above] {Preluare CSV} (datagov);
+    \draw[->, thick] (user) -- node[above=5pt, font=\small] {Vizualizează date} (system);
+    \draw[->, thick] (system) -- node[above=5pt, font=\small] {Preluare CSV} (datagov);
 \end{tikzpicture}
 \end{center}
 
-\newpage
 \subsection{Level 2: Container Diagram}
 \begin{center}
 \begin{tikzpicture}[
@@ -111,6 +110,7 @@ Utilizatorul accesează platforma pentru a analiza evoluția șomajului. Poate f
 \end{tikzpicture}
 \end{center}
 
+\newpage
 \subsection{Level 3: Component Diagram (Backend API)}
 \begin{center}
 \begin{tikzpicture}[
@@ -119,8 +119,8 @@ Utilizatorul accesează platforma pentru a analiza evoluția șomajului. Poate f
     \node[comp] (ctrl) {API Controller\\(index.php)};
     \node[comp, below=1cm of ctrl] (fetch) {DataFetching Service};
     \node[comp, below=1cm of fetch] (parser) {FileParser Utility};
-    \node[comp, right=2cm of fetch] (cacheman) {CacheSystem};
-    \node[comp, left=2cm of fetch] (models) {DTO Models};
+    \node[comp, right=1.2cm of fetch] (cacheman) {CacheSystem};
+    \node[comp, left=1.2cm of fetch] (models) {DTO Models};
 
     \draw[->] (ctrl) -- (fetch);
     \draw[->] (fetch) -- (parser);
@@ -165,7 +165,7 @@ Sistemul este orchestrat prin \texttt{docker-compose} și este compus din două 
 Pentru a evita problemele de \textbf{CORS (Cross-Origin Resource Sharing)} și pentru a menține API-ul într-o zonă securizată, comunicarea se face printr-un proxy:
 \begin{enumerate}
     \item Frontend-ul (JS) trimite cereri către \texttt{api-proxy.php} aflat pe același host.
-    \item Proxy-ul PHP utilizează cURL pentru a comunica cu containerul \texttt{unemployment-api} prin DNS-ul intern al Docker.
+    \item Proxy-ul PHP utilizează \texttt{file\_get\_contents} pentru a comunica cu containerul \texttt{api} prin DNS-ul intern al Docker.
     \item Acest model permite ascunderea complexității infrastructurii și oferă un punct unic de control pentru cererile către datele externe.
 \end{enumerate}
 
@@ -222,15 +222,26 @@ Mapat pe \texttt{rata.csv}.
 \subsubsection{UnemploymentDataPerAgeRange}
 Mapat pe \texttt{varste.csv}.
 \begin{itemize}
-    \item \texttt{string \$county}: Județ.
-    \item \texttt{int \$under25}, \texttt{\$from25to29}, \texttt{\$from30to39}, \texttt{\$from40to49}, \texttt{\$from50to59}, \texttt{\$over50}: Distribuție numerică pe vârste.
+	\item \texttt{string \$county}: Județ.
+	\item \texttt{int \$under25}: Număr șomeri sub vârsta de 25 ani. 
+	\item \texttt{\$from25to29}: Număr șomeri între 25 și 29 de ani.
+	\item \texttt{\$from30to39}: Număr șomeri între 30 și 39 de ani.
+	\item \texttt{\$from40to49}: Număr șomeri între 40 și 49 de ani.
+	\item \texttt{\$from50to59}: Număr șomeri între 50 și 59 de ani.
+	\item \texttt{\$over50}: Număr șomeri peste 50 de ani.
 \end{itemize}
 
 \subsubsection{UnemploymentDataPerEducationLevel}
 Mapat pe \texttt{nivel-educatie.csv}.
 \begin{itemize}
-    \item \texttt{string \$county}: Județ.
-    \item \texttt{int \$noStudy}, \texttt{\$primaryStudy}, \texttt{\$middleStudy}, \texttt{\$highStudy}, \texttt{\$postHighStudy}, \texttt{\$professionalStudy}, \texttt{\$universityStudy}: Distribuție după nivelul de școlarizare.
+	\item \texttt{string \$county}: Județ.
+	\item \texttt{int \$noStudy}: Număr șomeri fără studii.
+	\item \texttt{\$primaryStudy}: Număr șomeri cu studii primare. 
+	\item \texttt{\$middleStudy}: Număr șomeri cu studii gimnaziale. 
+	\item \texttt{\$highStudy}: Număr șomeri cu studii liceale. 
+	\item \texttt{\$postHighStudy}: Număr șomeri cu studii postliceale. 
+	\item \texttt{\$professionalStudy}: Număr șomeri cu studii profesionale. 
+	\item \texttt{\$universityStudy}: Număr șomeri cu studii universitare.
 \end{itemize}
 
 \subsubsection{UnemploymentDataPerMedium}
