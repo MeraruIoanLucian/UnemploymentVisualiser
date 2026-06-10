@@ -71,7 +71,12 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-headline);
     line-height: 1.2;
 }
@@ -308,6 +313,7 @@ a:hover {
     .grid-main {
         grid-template-columns: 6fr 4fr;
     }
+
     .grid-secondary {
         grid-template-columns: 1fr 1fr;
     }
@@ -646,12 +652,20 @@ a:hover {
     margin-left: 0.25rem;
 }
 
-.data-table th.sorted-asc .sort-icon::after { content: "▲"; }
-.data-table th.sorted-desc .sort-icon::after { content: "▼"; }
-.data-table th:not(.sorted-asc):not(.sorted-desc) .sort-icon::after { content: "⇅"; }
+.data-table th.sorted-asc .sort-icon::after {
+    content: "▲";
+}
+
+.data-table th.sorted-desc .sort-icon::after {
+    content: "▼";
+}
+
+.data-table th:not(.sorted-asc):not(.sorted-desc) .sort-icon::after {
+    content: "⇅";
+}
 
 .data-table tbody tr {
-    border-bottom: 1px solid var(--color-outline-variant-10);
+    border-bottom: 5px solid #000000;
     transition: background-color var(--transition-fast);
 }
 
@@ -795,7 +809,9 @@ a:hover {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* --- Error State --- */
@@ -814,44 +830,56 @@ a:hover {
     .header {
         padding: 0.75rem 1rem;
     }
+
     .main {
         padding: 5rem 1rem 2rem;
     }
+
     .filter-section {
         padding: 1rem;
         gap: 1rem;
     }
+
     .filter-group {
         min-width: 100%;
     }
+
     .card {
         padding: 1.5rem;
     }
+
     .card-stat-highlight {
         padding: 1.5rem;
     }
+
     .card-stat-highlight .stat-value {
         font-size: 2.25rem;
     }
+
     .donut-area {
         flex-direction: column;
     }
+
     .table-header {
         flex-direction: column;
         align-items: stretch;
     }
+
     .search-input {
         width: 100%;
     }
+
     .data-table th,
     .data-table td {
         padding: 0.75rem 1rem;
     }
+
     .table-footer {
         flex-direction: column;
         gap: 0.75rem;
         text-align: center;
     }
+
     .footer {
         flex-direction: column;
         text-align: center;
@@ -892,8 +920,9 @@ a:hover {
 
 /* ========== PRINT STYLES ========== */
 @media print {
-    .header-actions, 
-    .filter-section, 
+
+    .header-actions,
+    .filter-section,
     .filter-actions,
     .btn-export-group,
     .search-input-wrapper,
@@ -924,7 +953,8 @@ a:hover {
         margin-bottom: 1rem !important;
     }
 
-    .grid-main, .grid-secondary {
+    .grid-main,
+    .grid-secondary {
         display: block !important;
     }
 
@@ -935,7 +965,8 @@ a:hover {
         margin-bottom: 1rem !important;
     }
 
-    .card-stat-highlight, .card-indicators {
+    .card-stat-highlight,
+    .card-indicators {
         flex: 1 !important;
     }
 
@@ -943,7 +974,8 @@ a:hover {
         font-size: 9pt !important;
     }
 
-    .data-table th, .data-table td {
+    .data-table th,
+    .data-table td {
         padding: 0.5rem !important;
     }
 }
